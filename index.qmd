@@ -10,7 +10,7 @@ format:
       data-background-image: images/title.png
       data-background-color: "black"
       style: "text-align: left; right: 10%; font-size: 1.5em;"
-    footer: ivelasq-abuja-dplyr-1-2-0.share.connect.posit.cloud
+    footer: ivelasq.github.io/2026-06-24_dplyr-1-2-0
     include-in-header:
       text: |
         <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
@@ -30,6 +30,7 @@ format:
       - js/recode-values.html
       - js/mutate-simple.html
       - js/case-when-unmatched.html
+      - js/case-when-default.html
       - js/recode-values-error.html
       - js/recode-values-lookup.html
       - js/replace-values.html
@@ -64,7 +65,7 @@ penguins_data <- penguins
 
 ## Introduction
 
-⬢ Slides available at: [ivelasq-abuja-dplyr-1-2-0.share.connect.posit.cloud](ivelasq-abuja-dplyr-1-2-0.share.connect.posit.cloud)
+⬢ Slides available at: [ivelasq.github.io/2026-06-24_dplyr-1-2-0](ivelasq.github.io/2026-06-24_dplyr-1-2-0)
 
 ⬢ Links available at the end of the slide deck
 
@@ -384,6 +385,12 @@ penguins |>
 Unmatched rows default to `NA`
 
 {{< include examples/presentation/_case-when-unmatched-content.qmd >}}
+
+## `case_when()` with `.default` {.cwd-slide}
+
+The `.default` parameter provides a value for unmatched rows
+
+{{< include examples/presentation/_case-when-default-content.qmd >}}
 
 # Issues with `case_when()` {background-color="#99ccff"}
 

@@ -1,0 +1,302 @@
+<script>
+/* ---- recode_values() island recoding ----
+ * Marker slide: .rv-slide   Stage container: #rv-stage
+ * Shows how recode_values() creates a new column for island recoding
+ */
+(function () {
+  const DATA = window.RV_DATA || [];
+  const COLS = window.RV_COLS || ['species', 'island', 'body_mass_g'];
+  const MATCHES = window.RV_MATCHES || [];
+  const LABELS = window.RV_LABELS || ['Southwest', 'Northwest', 'Northwest'];
+  const VALUE_COLORS = window.RV_VALUE_COLORS || ['#e8853a', '#4a86c5', '#9b59b6'];
+
+  const ROW_H = 44, HEADER_H = 40, TABLE_Y = 120;
+  const LEFT_X = 50;
+  const W_SP = 100, W_IS = 100, W_VAL = 120;
+  const ROW_W = W_SP + W_IS + W_VAL;
+  const ARROW_GAP = 180;
+  const RESULT_X = LEFT_X + ROW_W + ARROW_GAP;
+  const W_RESULT = 160;
+
+  function hexRGB(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function fade(hex) {
+    const [r, g, b] = hexRGB(hex);
+    return `rgba(${r}, ${g}, ${b}, 0)`;
+  }
+
+  const VALUE_FILLS = VALUE_COLORS.map(c => {
+    const [r, g, b] = hexRGB(c);
+    return `rgba(${r}, ${g}, ${b}, 0.25)`;
+  });
+
+  const INK = 'rgb(29, 36, 51)';
+  const N = DATA.length;
+
+  let built = false;
+  let leftRows = [];
+  let condBoxes = [];
+  let valueSpans = [];
+  let tildeSpans = [];
+  let resultCells = [];
+  let arrows = [];
+  let newColumnCells = [];
+
+  function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
+
+  function makeRow(sp, isl, val, isHead, location) {
+    const row = document.createElement('div');
+    row.className = 'rv-row' + (isHead ? ' rv-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'rv-cell rv-species'; c1.textContent = sp;
+    const c2 = document.createElement('span'); c2.className = 'rv-cell rv-island'; c2.textContent = isl;
+    const c3 = document.createElement('span'); c3.className = 'rv-cell rv-value'; c3.textContent = val;
+    row.append(c1, c2, c3);
+    if (location !== undefined) {
+      const c4 = document.createElement('span'); c4.className = 'rv-cell rv-location'; c4.textContent = location;
+      row.append(c4);
+    }
+    return row;
+  }
+
+  function build() {
+    const stage = document.getElementById('rv-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    // Title with dynamic value highlighting
+    const title = document.createElement('div');
+    title.className = 'rv-title';
+    title.appendChild(document.createTextNode('mutate(island_location = island |> recode_values('));
+
+    // Value 1
+    const val1 = document.createElement('span');
+    val1.className = 'rv-val';
+    val1.appendChild(document.createTextNode('"Biscoe" '));
+    const tilde1 = document.createElement('span');
+    tilde1.className = 'rv-tilde';
+    tilde1.textContent = '~';
+    tildeSpans.push(tilde1);
+    val1.appendChild(tilde1);
+    val1.appendChild(document.createTextNode(' "Southwest"'));
+    valueSpans.push(val1);
+    title.appendChild(val1);
+
+    title.appendChild(document.createTextNode(', '));
+
+    // Value 2
+    const val2 = document.createElement('span');
+    val2.className = 'rv-val';
+    val2.appendChild(document.createTextNode('"Dream" '));
+    const tilde2 = document.createElement('span');
+    tilde2.className = 'rv-tilde';
+    tilde2.textContent = '~';
+    tildeSpans.push(tilde2);
+    val2.appendChild(tilde2);
+    val2.appendChild(document.createTextNode(' "Northwest"'));
+    valueSpans.push(val2);
+    title.appendChild(val2);
+
+    title.appendChild(document.createTextNode(', '));
+
+    // Value 3
+    const val3 = document.createElement('span');
+    val3.className = 'rv-val';
+    val3.appendChild(document.createTextNode('"Torgersen" '));
+    const tilde3 = document.createElement('span');
+    tilde3.className = 'rv-tilde';
+    tilde3.textContent = '~';
+    tildeSpans.push(tilde3);
+    val3.appendChild(tilde3);
+    val3.appendChild(document.createTextNode(' "Northwest"'));
+    valueSpans.push(val3);
+    title.appendChild(val3);
+
+    title.appendChild(document.createTextNode('))'));
+    stage.appendChild(title);
+
+    // Left table
+    const lhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(lhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      stage.appendChild(row);
+      leftRows.push(row);
+
+      // Create value highlight boxes (initially hidden)
+      const CELL_PADDING_TOTAL = 24;
+      const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+      const box = document.createElement('div');
+      box.className = 'rv-cond-box';
+      box.style.position = 'absolute';
+      box.style.width = `${BOX_WIDTH}px`;
+      box.style.height = `${ROW_H}px`;
+      box.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      box.style.backgroundColor = 'transparent';
+      box.style.pointerEvents = 'none';
+      stage.appendChild(box);
+      condBoxes.push(box);
+    });
+
+    // Result table (with all columns including new island_location)
+    const rhead = makeRow(COLS[0], COLS[1], COLS[2], true, 'island_location');
+    rhead.style.transform = `translate(${RESULT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    resultCells.push(rhead);
+
+    // Result table rows
+    DATA.forEach((d, i) => {
+      // Determine label: first value that matches wins
+      let label = '';
+      for (let c = 0; c < MATCHES.length; c++) {
+        if (MATCHES[c][i]) {
+          label = LABELS[c];
+          break;
+        }
+      }
+
+      const row = makeRow(d[0], d[1], d[2], false, label);
+      row.style.transform = `translate(${RESULT_X}px, ${rowY(i)}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      resultCells.push(row);
+
+      // Track the island_location cells (the 4th cell in each row)
+      const locationCell = row.children[3];
+      if (locationCell) {
+        newColumnCells.push(locationCell);
+      }
+    });
+
+    // Arrows
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'rv-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'rv-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#4ac586');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const CELL_PADDING_TOTAL = 24;
+    const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+    const sx = LEFT_X + BOX_WIDTH + 8;
+    const dx = RESULT_X - 8;
+    DATA.forEach((d, i) => {
+      const yy = TABLE_Y + HEADER_H + i * ROW_H + ROW_H / 2;
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'rv-arrow');
+      p.setAttribute('marker-end', 'url(#rv-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${yy} L ${dx} ${yy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const nValues = 3;  // We have 3 values
+    const showResult = stage >= nValues + 2;  // Stage 5+ (was 4+, now shifted by 1)
+    const highlightNew = stage >= nValues + 3;  // Stage 6+ (was 5+, now shifted by 1)
+
+    // Stage 1: Highlight all ~ operators
+    const highlightTildes = stage >= 1;
+    tildeSpans.forEach(tilde => {
+      TM.anime({
+        targets: tilde,
+        backgroundColor: highlightTildes ? 'rgba(231, 76, 60, 0.35)' : 'transparent',
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+
+    // Stages 2-4: Highlight value labels in the title
+    valueSpans.forEach((span, i) => {
+      const active = stage === i + 2;  // Stages 2, 3, 4 for values 1, 2, 3
+      TM.anime({
+        targets: span,
+        backgroundColor: active ? VALUE_FILLS[i] : fade(VALUE_COLORS[i]),
+        color: active ? VALUE_COLORS[i] : INK,
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+
+    // Handle row highlighting based on stage
+    condBoxes.forEach((box, i) => {
+      let bgColor = 'transparent';
+
+      if (!showResult && stage >= 2 && stage <= nValues + 1) {
+        // Show current value's matches (stages 2, 3, 4 for values 1, 2, 3)
+        const currentValue = stage - 2;
+        if (MATCHES[currentValue][i]) {
+          bgColor = VALUE_FILLS[currentValue];
+        }
+      }
+
+      TM.anime({
+        targets: box,
+        backgroundColor: bgColor,
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+
+    // Draw arrows and show result column
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: showResult ? 0 : len,
+        opacity: showResult ? 1 : 0,
+        duration: 600,
+        easing: 'easeInOutCubic',
+        delay: showResult ? k * 90 : 0
+      });
+    });
+
+    TM.anime({
+      targets: resultCells,
+      opacity: showResult ? 1 : 0,
+      duration: 450,
+      easing: 'easeInOutQuad',
+      delay: showResult ? anime.stagger(50, { start: 520 }) : 0
+    });
+
+    // Highlight the new island_location column
+    newColumnCells.forEach(cell => {
+      TM.anime({
+        targets: cell,
+        backgroundColor: highlightNew ? 'rgba(74, 197, 134, 0.35)' : 'transparent',
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+  }
+
+  TM.gate({
+    markerClass: 'rv-slide',
+    fragmentIds: ['rv-tildes', 'rv-val-1', 'rv-val-2', 'rv-val-3', 'rv-result', 'rv-highlight-new'],
+    render
+  });
+})();
+</script>

@@ -1,0 +1,311 @@
+<script>
+/* ---- recode_values() with lookup table ----
+ * Marker slide: .rvl-slide   Stage container: #rvl-stage
+ * Shows how recode_values() uses a lookup table to recode values
+ */
+(function () {
+  const DATA = window.RVL_DATA || [];
+  const COLS = window.RVL_COLS || ['species', 'island', 'body_mass_g'];
+  const LOOKUP = window.RVL_LOOKUP || [];
+  const MATCHES = window.RVL_MATCHES || [];
+  const LOOKUP_COLORS = window.RVL_LOOKUP_COLORS || ['#e8853a', '#4a86c5', '#9b59b6'];
+
+  const ROW_H = 44, HEADER_H = 40;
+  const LOOKUP_Y = 80;
+  const TABLE_Y = 230;
+  const DATA_X = 50;
+  const LOOKUP_X = 420;
+  const W_SP = 100, W_IS = 100, W_VAL = 120;
+  const DATA_ROW_W = W_SP + W_IS + W_VAL;
+  const ARROW_GAP = 150;
+  const RESULT_X = DATA_X + DATA_ROW_W + ARROW_GAP;
+  const W_RESULT = 160;
+  const W_FROM = 100, W_TO = 110;
+
+  function hexRGB(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function fade(hex) {
+    const [r, g, b] = hexRGB(hex);
+    return `rgba(${r}, ${g}, ${b}, 0)`;
+  }
+
+  const LOOKUP_FILLS = LOOKUP_COLORS.map(c => {
+    const [r, g, b] = hexRGB(c);
+    return `rgba(${r}, ${g}, ${b}, 0.25)`;
+  });
+
+  const INK = 'rgb(29, 36, 51)';
+  const N = DATA.length;
+
+  let built = false;
+  let dataRows = [];
+  let lookupRows = [];
+  let dataBoxes = [];
+  let lookupBoxes = [];
+  let resultCells = [];
+  let arrows = [];
+  let newColumnCells = [];
+  let codeHighlight;
+
+  function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
+
+  function makeDataRow(sp, isl, val, isHead, location) {
+    const row = document.createElement('div');
+    row.className = 'rvl-row' + (isHead ? ' rvl-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'rvl-cell rvl-species'; c1.textContent = sp;
+    const c2 = document.createElement('span'); c2.className = 'rvl-cell rvl-island'; c2.textContent = isl;
+    const c3 = document.createElement('span'); c3.className = 'rvl-cell rvl-value'; c3.textContent = val;
+    row.append(c1, c2, c3);
+    if (location !== undefined) {
+      const c4 = document.createElement('span'); c4.className = 'rvl-cell rvl-location'; c4.textContent = location;
+      row.append(c4);
+    }
+    return row;
+  }
+
+  function makeLookupRow(from, to, isHead) {
+    const row = document.createElement('div');
+    row.className = 'rvl-lookup-row' + (isHead ? ' rvl-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'rvl-cell rvl-from'; c1.textContent = from;
+    const c2 = document.createElement('span'); c2.className = 'rvl-cell rvl-to'; c2.textContent = to;
+    row.append(c1, c2);
+    return row;
+  }
+
+  function build() {
+    const stage = document.getElementById('rvl-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    // Title
+    const title = document.createElement('div');
+    title.className = 'rvl-title';
+    title.appendChild(document.createTextNode('recode_values(island, '));
+
+    const highlightSpan = document.createElement('span');
+    highlightSpan.className = 'rvl-code-highlight';
+    highlightSpan.textContent = 'from = lookup$from, to = lookup$to';
+    title.appendChild(highlightSpan);
+    codeHighlight = highlightSpan;
+
+    title.appendChild(document.createTextNode(')'));
+    stage.appendChild(title);
+
+    // Lookup table label
+    const lookupLabel = document.createElement('div');
+    lookupLabel.className = 'rvl-lookup-label';
+    lookupLabel.textContent = 'lookup:';
+    lookupLabel.style.transform = `translate(${LOOKUP_X}px, ${LOOKUP_Y - 30}px)`;
+    stage.appendChild(lookupLabel);
+
+    // Lookup table (at top)
+    const lhead = makeLookupRow('from', 'to', true);
+    lhead.style.transform = `translate(${LOOKUP_X}px, ${LOOKUP_Y}px)`;
+    stage.appendChild(lhead);
+
+    LOOKUP.forEach((entry, i) => {
+      const row = makeLookupRow(entry[0], entry[1], false);
+      row.style.transform = `translate(${LOOKUP_X}px, ${LOOKUP_Y + HEADER_H + i * ROW_H}px)`;
+      stage.appendChild(row);
+      lookupRows.push(row);
+
+      // Create lookup highlight boxes
+      const box = document.createElement('div');
+      box.className = 'rvl-lookup-box';
+      box.style.position = 'absolute';
+      box.style.width = `${W_FROM + W_TO + 24}px`;
+      box.style.height = `${ROW_H}px`;
+      box.style.transform = `translate(${LOOKUP_X}px, ${LOOKUP_Y + HEADER_H + i * ROW_H}px)`;
+      box.style.backgroundColor = 'transparent';
+      box.style.pointerEvents = 'none';
+      stage.appendChild(box);
+      lookupBoxes.push(box);
+    });
+
+    // Data table label
+    const dataLabel = document.createElement('div');
+    dataLabel.className = 'rvl-data-label';
+    dataLabel.textContent = 'data:';
+    dataLabel.style.transform = `translate(${DATA_X}px, ${TABLE_Y - 35}px)`;
+    stage.appendChild(dataLabel);
+
+    // Data table
+    const dhead = makeDataRow(COLS[0], COLS[1], COLS[2], true);
+    dhead.style.transform = `translate(${DATA_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(dhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeDataRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${DATA_X}px, ${rowY(i)}px)`;
+      stage.appendChild(row);
+      dataRows.push(row);
+
+      // Create data highlight boxes
+      const CELL_PADDING_TOTAL = 24;
+      const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+      const box = document.createElement('div');
+      box.className = 'rvl-data-box';
+      box.style.position = 'absolute';
+      box.style.width = `${BOX_WIDTH}px`;
+      box.style.height = `${ROW_H}px`;
+      box.style.transform = `translate(${DATA_X}px, ${rowY(i)}px)`;
+      box.style.backgroundColor = 'transparent';
+      box.style.pointerEvents = 'none';
+      stage.appendChild(box);
+      dataBoxes.push(box);
+    });
+
+    // Result table
+    const rhead = makeDataRow(COLS[0], COLS[1], COLS[2], true, 'island_location');
+    rhead.style.transform = `translate(${RESULT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    resultCells.push(rhead);
+
+    DATA.forEach((d, i) => {
+      // Find matching lookup entry
+      let label = '';
+      for (let l = 0; l < LOOKUP.length; l++) {
+        if (MATCHES[l][i]) {
+          label = LOOKUP[l][1];  // Use 'to' value from lookup
+          break;
+        }
+      }
+
+      const row = makeDataRow(d[0], d[1], d[2], false, label);
+      row.style.transform = `translate(${RESULT_X}px, ${rowY(i)}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      resultCells.push(row);
+
+      const locationCell = row.children[3];
+      if (locationCell) {
+        newColumnCells.push(locationCell);
+      }
+    });
+
+    // Arrows
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'rvl-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'rvl-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#4ac586');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const CELL_PADDING_TOTAL = 24;
+    const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+    const sx = DATA_X + BOX_WIDTH + 8;
+    const dx = RESULT_X - 8;
+    DATA.forEach((d, i) => {
+      const yy = TABLE_Y + HEADER_H + i * ROW_H + ROW_H / 2;
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'rvl-arrow');
+      p.setAttribute('marker-end', 'url(#rvl-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${yy} L ${dx} ${yy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const nLookup = 3;
+    const showResult = stage >= nLookup + 1;  // Stage 4+
+    const highlightNew = stage >= nLookup + 2;  // Stage 5+
+
+    // Highlight code when going through lookup stages
+    const isLookupStage = stage >= 1 && stage <= nLookup;
+    TM.anime({
+      targets: codeHighlight,
+      backgroundColor: isLookupStage ? 'rgba(255, 230, 109, 0.4)' : 'transparent',
+      duration: 450,
+      easing: 'easeInOutQuad'
+    });
+
+    // Highlight lookup table rows
+    lookupBoxes.forEach((box, i) => {
+      const active = stage === i + 1;
+      TM.anime({
+        targets: box,
+        backgroundColor: active ? LOOKUP_FILLS[i] : 'transparent',
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+
+    // Highlight matching data rows
+    dataBoxes.forEach((box, dataIdx) => {
+      let bgColor = 'transparent';
+
+      if (!showResult && stage >= 1 && stage <= nLookup) {
+        const currentLookup = stage - 1;
+        if (MATCHES[currentLookup][dataIdx]) {
+          bgColor = LOOKUP_FILLS[currentLookup];
+        }
+      }
+
+      TM.anime({
+        targets: box,
+        backgroundColor: bgColor,
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+
+    // Draw arrows and show result
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: showResult ? 0 : len,
+        opacity: showResult ? 1 : 0,
+        duration: 600,
+        easing: 'easeInOutCubic',
+        delay: showResult ? k * 90 : 0
+      });
+    });
+
+    TM.anime({
+      targets: resultCells,
+      opacity: showResult ? 1 : 0,
+      duration: 450,
+      easing: 'easeInOutQuad',
+      delay: showResult ? anime.stagger(50, { start: 520 }) : 0
+    });
+
+    // Highlight new column
+    newColumnCells.forEach(cell => {
+      TM.anime({
+        targets: cell,
+        backgroundColor: highlightNew ? 'rgba(74, 197, 134, 0.35)' : 'transparent',
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+  }
+
+  TM.gate({
+    markerClass: 'rvl-slide',
+    fragmentIds: ['rvl-lookup-1', 'rvl-lookup-2', 'rvl-lookup-3', 'rvl-result', 'rvl-highlight-new'],
+    render
+  });
+})();
+</script>

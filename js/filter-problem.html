@@ -1,0 +1,320 @@
+<script>
+/* ---- filter(!(cond1 & cond2)) problem - drops NAs unexpectedly ----
+ * Marker slide: .fp-slide   Stage container: #fp-stage
+ * Shows how filter() with negation drops BOTH the target row AND the NA row
+ * Stage 1-2: highlight conditions, Stage 3: show the one row to drop (Row 4)
+ * Stage 4: reveal the PROBLEM - both Row 4 AND Row 5 (NA) are dropped!
+ */
+(function () {
+  const TITLE_PRE   = window.FP_TITLE_PRE   || 'filter(!(';
+  const CONDS_TEXT  = window.FP_CONDS_TEXT  || [];
+  const TITLE_POST  = window.FP_TITLE_POST  || '))';
+  const DATA  = window.FP_DATA  || [];
+  const COLS  = window.FP_COLS  || ['species', 'island', 'body_mass_g'];
+  const HITS  = window.FP_HITS  || [];
+
+  const ROW_H = 44, HEADER_H = 40, TABLE_Y = 90;
+  const LEFT_X = 50, RIGHT_X = 720;
+  const W_SP = 100, W_IS = 120, W_VAL = 100;
+  const ROW_W = W_SP + W_IS + W_VAL;
+  const COND_HEX = window.FP_COLORS || ['#e8853a', '#c54a4a'];
+
+  function hexRGB(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  const COND_COLORS = COND_HEX.map(hex => {
+    const [r, g, b] = hexRGB(hex);
+    return {
+      fill: `rgba(${r}, ${g}, ${b}, 0.30)`,
+      ink:  `rgb(${Math.round(r * 0.62)}, ${Math.round(g * 0.62)}, ${Math.round(b * 0.62)})`,
+    };
+  });
+
+  const DROP_COLOR = 'rgba(197, 74, 74, 0.25)';
+  const PROBLEM_COLOR = 'rgba(197, 74, 74, 0.35)';  // darker red for the problem
+  const ROW_CLEAR = 'rgba(74, 134, 197, 0)';
+  const INK = 'rgb(29, 36, 51)';
+
+  function clear(rgba) {
+    const n = rgba.match(/[\d.]+/g) || [0, 0, 0];
+    return `rgba(${n[0]}, ${n[1]}, ${n[2]}, 0)`;
+  }
+
+  // a row should be DROPPED if ALL conditions match (Row 4)
+  const N = DATA.length;
+  const BOTH_MATCH = DATA.map((_, i) => HITS.every(col => col[i]));
+
+  // BUT filter(!(cond1 & cond2)) ALSO drops rows where ANY condition has NA
+  // For this demo: Row 4 (both match) and Row 5 (has NA) will both be dropped
+  const ACTUALLY_DROPPED = [false, false, false, true, true];  // Rows 4 and 5
+  const keepIdx = [0, 1, 2];  // Only rows 1-3 survive
+  const M = keepIdx.length;
+
+  let built = false;
+  let condSpans = [];
+  let negationSpan = null;  // the ! operator
+  let leftRows = [];
+  let rightEls = [];
+  let arrows = [];
+  let xMarks = [];
+  let problemLabels = [];
+
+  function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
+  function rowCenterY(j) { return rowY(j) + ROW_H / 2; }
+
+  function makeRow(sp, isl, val, isHead) {
+    const row = document.createElement('div');
+    row.className = 'fp-row' + (isHead ? ' fp-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'fp-cell fp-species'; c1.textContent = sp;
+    const c2 = document.createElement('span'); c2.className = 'fp-cell fp-island'; c2.textContent = isl;
+    const c3 = document.createElement('span'); c3.className = 'fp-cell fp-value'; c3.textContent = val;
+    row.append(c1, c2, c3);
+    return row;
+  }
+
+  function build() {
+    const stage = document.getElementById('fp-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    const title = document.createElement('div');
+    title.className = 'fp-title';
+
+    // Split the title to highlight the ! separately
+    title.appendChild(document.createTextNode('filter('));
+
+    // Add the ! as a highlightable element
+    const negation = document.createElement('span');
+    negation.className = 'fp-negation';
+    negation.textContent = '!';
+    title.appendChild(negation);
+    negationSpan = negation;
+
+    title.appendChild(document.createTextNode('('));
+
+    CONDS_TEXT.forEach((t, i) => {
+      if (i) title.appendChild(document.createTextNode(' & '));
+      const s = document.createElement('span');
+      s.className = 'fp-code-cond';
+      s.textContent = t;
+      title.appendChild(s);
+      condSpans.push(s);
+    });
+    title.appendChild(document.createTextNode('))'));
+    stage.appendChild(title);
+
+    // ---- left table ----
+    const lhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(lhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      stage.appendChild(row);
+      leftRows.push(row);
+
+      // Add X mark for ALL rows that will actually be dropped (4 and 5)
+      if (ACTUALLY_DROPPED[i]) {
+        const xMark = document.createElement('div');
+        xMark.className = 'fp-x-mark';
+        xMark.textContent = '✗';
+        xMark.style.transform = `translate(${LEFT_X - 35}px, ${rowY(i) + 8}px)`;
+        xMark.style.opacity = 0;
+        stage.appendChild(xMark);
+        xMarks.push(xMark);
+
+        // Add problem label for the NA row (Row 5)
+        if (i === 4) {  // Row 5 (index 4)
+          const label = document.createElement('div');
+          label.className = 'fp-problem-label';
+          label.textContent = 'NA also dropped!';
+          label.style.transform = `translate(${LEFT_X + ROW_W + 15}px, ${rowY(i) + 8}px)`;
+          label.style.opacity = 0;
+          stage.appendChild(label);
+          problemLabels.push(label);
+        }
+      } else {
+        xMarks.push(null);
+      }
+    });
+
+    // ---- right table (hidden until final stage) ----
+    const rhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    rhead.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    rightEls.push(rhead);
+
+    keepIdx.forEach((srcI, j) => {
+      const d = DATA[srcI];
+      const row = makeRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${RIGHT_X}px, ${rowY(j)}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      rightEls.push(row);
+    });
+
+    // ---- arrows (svg overlay) ----
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'fp-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'fp-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#6b7280');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const sx = LEFT_X + ROW_W + 6;
+    const dx = RIGHT_X - 8;
+    keepIdx.forEach((srcI, j) => {
+      const syy = rowCenterY(srcI), dyy = rowCenterY(j);
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'fp-arrow');
+      p.setAttribute('marker-end', 'url(#fp-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${syy} C ${sx + 100} ${syy}, ${dx - 100} ${dyy}, ${dx} ${dyy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    // Stage 0: highlight the ! (negation operator)
+    const highlightNegation = stage >= 1;
+    TM.anime({
+      targets: negationSpan,
+      backgroundColor: highlightNegation ? 'rgba(197, 74, 74, 0.35)' : clear('rgba(197, 74, 74, 0.35)'),
+      color: highlightNegation ? '#c54a4a' : INK,
+      fontWeight: highlightNegation ? 700 : 500,
+      duration: 450, easing: 'easeInOutQuad',
+    });
+
+    // stages 2-3: highlight conditions
+    const nConds = HITS.length;
+    condSpans.forEach((s, c) => {
+      const hi = stage >= c + 2;  // shifted by 1 to accommodate negation stage
+      const cc = COND_COLORS[c % COND_COLORS.length];
+      TM.anime({
+        targets: s,
+        backgroundColor: hi ? cc.fill : clear(cc.fill),
+        color: hi ? cc.ink : INK,
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    });
+
+    leftRows.forEach((row, i) => {
+      const cells = row.querySelectorAll('.fp-cell');
+      HITS.forEach((col, c) => {
+        if (!col[i]) return;
+        const hi = stage >= c + 2;  // shifted by 1
+        const cc = COND_COLORS[c % COND_COLORS.length];
+        const cell = cells[c + 1];
+        if (cell) {
+          cell.classList.toggle('fp-hit', hi);
+          TM.anime({
+            targets: cell,
+            backgroundColor: hi ? cc.fill : clear(cc.fill),
+            color: hi ? cc.ink : INK,
+            duration: 450, easing: 'easeInOutQuad',
+          });
+        }
+      });
+    });
+
+    // stage 4: show which row SHOULD be dropped (Row 4 - both conditions match)
+    const both = stage >= nConds + 2;  // shifted by 1
+    leftRows.forEach((row, i) => {
+      const bgColor = both && BOTH_MATCH[i] ? DROP_COLOR : ROW_CLEAR;
+      TM.anime({
+        targets: row,
+        backgroundColor: bgColor,
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    });
+
+    // Show X on Row 4 at stage 3
+    if (xMarks[3]) {
+      TM.anime({
+        targets: xMarks[3],
+        opacity: both ? 1 : 0,
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    }
+
+    // stage 5: reveal the PROBLEM - NA row is also dropped!
+    const problem = stage >= nConds + 3;  // shifted by 1
+
+    // Show the NA row (Row 5) is also dropped
+    leftRows.forEach((row, i) => {
+      if (ACTUALLY_DROPPED[i]) {
+        TM.anime({
+          targets: row,
+          backgroundColor: problem ? PROBLEM_COLOR : (both && BOTH_MATCH[i] ? DROP_COLOR : ROW_CLEAR),
+          opacity: problem ? 0.3 : 1,
+          duration: 450, easing: 'easeInOutQuad',
+        });
+      }
+    });
+
+    // Show X on Row 5 (NA row) at stage 4
+    if (xMarks[4]) {
+      TM.anime({
+        targets: xMarks[4],
+        opacity: problem ? 1 : 0,
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    }
+
+    // Show problem label
+    problemLabels.forEach(label => {
+      TM.anime({
+        targets: label,
+        opacity: problem ? 1 : 0,
+        duration: 450, easing: 'easeInOutQuad',
+        delay: problem ? 200 : 0,
+      });
+    });
+
+    // Draw arrows to result (only rows 1-3 survive)
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: problem ? 0 : len,
+        opacity: problem ? 1 : 0,
+        duration: 600, easing: 'easeInOutCubic',
+        delay: problem ? k * 90 + 400 : 0,
+      });
+    });
+
+    TM.anime({
+      targets: rightEls,
+      opacity: problem ? 1 : 0,
+      duration: 450, easing: 'easeInOutQuad',
+      delay: problem ? anime.stagger(50, { start: 720 }) : 0,
+    });
+  }
+
+  TM.gate({
+    markerClass: 'fp-slide',
+    fragmentIds: ['fp-negation', 'fp-cond-1', 'fp-cond-2', 'fp-both', 'fp-problem'],
+    render,
+  });
+})();
+</script>

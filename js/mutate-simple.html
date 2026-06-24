@@ -1,0 +1,172 @@
+<script>
+/* ---- mutate() simple example ----
+ * Marker slide: .ms-slide   Stage container: #ms-stage
+ * Shows how mutate() adds a new column with a simple calculation
+ */
+(function () {
+  const DATA = window.MS_DATA || [];
+  const COLS = window.MS_COLS || ['species', 'island', 'body_mass_g'];
+
+  const ROW_H = 44, HEADER_H = 40, TABLE_Y = 120;
+  const LEFT_X = 100;
+  const W_SP = 100, W_IS = 100, W_VAL = 120;
+  const ROW_W = W_SP + W_IS + W_VAL;
+  const ARROW_GAP = 150;
+  const RESULT_X = LEFT_X + ROW_W + ARROW_GAP;
+  const W_RESULT = 120;
+
+  const INK = 'rgb(29, 36, 51)';
+  const N = DATA.length;
+
+  let built = false;
+  let leftRows = [];
+  let resultCells = [];
+  let arrows = [];
+  let newColumnCells = [];
+
+  function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
+
+  function makeRow(sp, isl, val, isHead, bodyMassKg) {
+    const row = document.createElement('div');
+    row.className = 'ms-row' + (isHead ? ' ms-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'ms-cell ms-species'; c1.textContent = sp;
+    const c2 = document.createElement('span'); c2.className = 'ms-cell ms-island'; c2.textContent = isl;
+    const c3 = document.createElement('span'); c3.className = 'ms-cell ms-value'; c3.textContent = val;
+    row.append(c1, c2, c3);
+    if (bodyMassKg !== undefined) {
+      const c4 = document.createElement('span'); c4.className = 'ms-cell ms-body-mass-kg'; c4.textContent = bodyMassKg;
+      row.append(c4);
+    }
+    return row;
+  }
+
+  function build() {
+    const stage = document.getElementById('ms-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    // Title
+    const title = document.createElement('div');
+    title.className = 'ms-title';
+    title.textContent = 'mutate(body_mass_kg = body_mass_g / 1000)';
+    stage.appendChild(title);
+
+    // Left table
+    const lhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(lhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      stage.appendChild(row);
+      leftRows.push(row);
+    });
+
+    // Result table (with all columns including new body_mass_kg)
+    const rhead = makeRow(COLS[0], COLS[1], COLS[2], true, 'body_mass_kg');
+    rhead.style.transform = `translate(${RESULT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    resultCells.push(rhead);
+
+    // Result table rows
+    DATA.forEach((d, i) => {
+      // Convert grams to kg
+      const bodyMassKg = (parseFloat(d[2]) / 1000).toFixed(2);
+
+      const row = makeRow(d[0], d[1], d[2], false, bodyMassKg);
+      row.style.transform = `translate(${RESULT_X}px, ${rowY(i)}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      resultCells.push(row);
+
+      // Track the body_mass_kg cells (the 4th cell in each row)
+      const kgCell = row.children[3];
+      if (kgCell) {
+        newColumnCells.push(kgCell);
+      }
+    });
+
+    // Arrows
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'ms-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'ms-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#4ac586');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const CELL_PADDING_TOTAL = 24;
+    const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+    const sx = LEFT_X + BOX_WIDTH + 8;
+    const dx = RESULT_X - 8;
+    DATA.forEach((d, i) => {
+      const yy = TABLE_Y + HEADER_H + i * ROW_H + ROW_H / 2;
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'ms-arrow');
+      p.setAttribute('marker-end', 'url(#ms-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${yy} L ${dx} ${yy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const showResult = stage >= 1;  // Stage 1+
+    const highlightNew = stage >= 2;  // Stage 2+
+
+    // Draw arrows and show result column
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: showResult ? 0 : len,
+        opacity: showResult ? 1 : 0,
+        duration: 600,
+        easing: 'easeInOutCubic',
+        delay: showResult ? k * 90 : 0
+      });
+    });
+
+    TM.anime({
+      targets: resultCells,
+      opacity: showResult ? 1 : 0,
+      duration: 450,
+      easing: 'easeInOutQuad',
+      delay: showResult ? anime.stagger(50, { start: 520 }) : 0
+    });
+
+    // Highlight the new body_mass_kg column
+    newColumnCells.forEach(cell => {
+      TM.anime({
+        targets: cell,
+        backgroundColor: highlightNew ? 'rgba(74, 197, 134, 0.35)' : 'transparent',
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+  }
+
+  TM.gate({
+    markerClass: 'ms-slide',
+    fragmentIds: ['ms-result', 'ms-highlight-new'],
+    render
+  });
+})();
+</script>

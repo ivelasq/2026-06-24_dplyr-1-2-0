@@ -1,0 +1,225 @@
+<script>
+/* ---- replace_when() ----
+ * Marker slide: .rw-slide   Stage container: #rw-stage
+ * Shows how replace_when() caps values at 5000 without needing .default
+ */
+(function () {
+  const DATA = window.RW_DATA || [];
+  const COLS = window.RW_COLS || ['species', 'island', 'body_mass_g'];
+  const MATCHES = window.RW_MATCHES || [];
+  const HIGHLIGHT_COLOR = window.RW_HIGHLIGHT_COLOR || '#e8853a';
+
+  const ROW_H = 44, HEADER_H = 40, TABLE_Y = 140;
+  const LEFT_X = 50;
+  const W_SP = 100, W_IS = 100, W_VAL = 120;
+  const ROW_W = W_SP + W_IS + W_VAL;
+  const ARROW_GAP = 180;
+  const RESULT_X = LEFT_X + ROW_W + ARROW_GAP;
+
+  function hexRGB(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function fade(hex) {
+    const [r, g, b] = hexRGB(hex);
+    return `rgba(${r}, ${g}, ${b}, 0)`;
+  }
+
+  const [r, g, b] = hexRGB(HIGHLIGHT_COLOR);
+  const HIGHLIGHT_FILL = `rgba(${r}, ${g}, ${b}, 0.25)`;
+
+  const INK = 'rgb(29, 36, 51)';
+  const N = DATA.length;
+
+  let built = false;
+  let leftRows = [];
+  let condBoxes = [];
+  let condSpan;
+  let resultCells = [];
+  let arrows = [];
+  let changedCells = [];
+
+  function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
+
+  function makeRow(sp, isl, val, isHead) {
+    const row = document.createElement('div');
+    row.className = 'rw-row' + (isHead ? ' rw-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'rw-cell rw-species'; c1.textContent = sp;
+    const c2 = document.createElement('span'); c2.className = 'rw-cell rw-island'; c2.textContent = isl;
+    const c3 = document.createElement('span'); c3.className = 'rw-cell rw-value'; c3.textContent = val;
+    row.append(c1, c2, c3);
+    return row;
+  }
+
+  function build() {
+    const stage = document.getElementById('rw-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    // Title
+    const title = document.createElement('div');
+    title.className = 'rw-title';
+    title.appendChild(document.createTextNode('mutate(body_mass_g = replace_when(body_mass_g, '));
+
+    const cond = document.createElement('span');
+    cond.className = 'rw-cond';
+    cond.textContent = 'body_mass_g > 5000 ~ 5000';
+    condSpan = cond;
+    title.appendChild(cond);
+
+    title.appendChild(document.createTextNode('))'));
+    stage.appendChild(title);
+
+    // Left table
+    const lhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(lhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      stage.appendChild(row);
+      leftRows.push(row);
+
+      // Create condition highlight boxes
+      const CELL_PADDING_TOTAL = 24;
+      const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+      const box = document.createElement('div');
+      box.className = 'rw-cond-box';
+      box.style.position = 'absolute';
+      box.style.width = `${BOX_WIDTH}px`;
+      box.style.height = `${ROW_H}px`;
+      box.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      box.style.backgroundColor = 'transparent';
+      box.style.pointerEvents = 'none';
+      stage.appendChild(box);
+      condBoxes.push(box);
+    });
+
+    // Result table
+    const rhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    rhead.style.transform = `translate(${RESULT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    resultCells.push(rhead);
+
+    DATA.forEach((d, i) => {
+      // Cap value at 5000 if it matches condition
+      const newVal = MATCHES[i] ? '5000' : d[2];
+      const row = makeRow(d[0], d[1], newVal, false);
+      row.style.transform = `translate(${RESULT_X}px, ${rowY(i)}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      resultCells.push(row);
+
+      // Track changed cells
+      if (MATCHES[i]) {
+        const valueCell = row.children[2];
+        changedCells.push(valueCell);
+      }
+    });
+
+    // Arrows
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'rw-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'rw-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#4ac586');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const CELL_PADDING_TOTAL = 24;
+    const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+    const sx = LEFT_X + BOX_WIDTH + 8;
+    const dx = RESULT_X - 8;
+    DATA.forEach((d, i) => {
+      const yy = TABLE_Y + HEADER_H + i * ROW_H + ROW_H / 2;
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'rw-arrow');
+      p.setAttribute('marker-end', 'url(#rw-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${yy} L ${dx} ${yy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const showHighlight = stage >= 1;
+    const showResult = stage >= 2;
+    const highlightChanged = stage >= 3;
+
+    // Highlight condition in title
+    TM.anime({
+      targets: condSpan,
+      backgroundColor: showHighlight ? HIGHLIGHT_FILL : fade(HIGHLIGHT_COLOR),
+      color: showHighlight ? HIGHLIGHT_COLOR : INK,
+      duration: 450,
+      easing: 'easeInOutQuad'
+    });
+
+    // Highlight matching rows
+    condBoxes.forEach((box, i) => {
+      const bgColor = showHighlight && !showResult && MATCHES[i] ? HIGHLIGHT_FILL : 'transparent';
+      TM.anime({
+        targets: box,
+        backgroundColor: bgColor,
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+
+    // Draw arrows and show result
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: showResult ? 0 : len,
+        opacity: showResult ? 1 : 0,
+        duration: 600,
+        easing: 'easeInOutCubic',
+        delay: showResult ? k * 90 : 0
+      });
+    });
+
+    TM.anime({
+      targets: resultCells,
+      opacity: showResult ? 1 : 0,
+      duration: 450,
+      easing: 'easeInOutQuad',
+      delay: showResult ? anime.stagger(50, { start: 520 }) : 0
+    });
+
+    // Highlight changed values
+    changedCells.forEach(cell => {
+      TM.anime({
+        targets: cell,
+        backgroundColor: highlightChanged ? 'rgba(74, 197, 134, 0.35)' : 'transparent',
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+  }
+
+  TM.gate({
+    markerClass: 'rw-slide',
+    fragmentIds: ['rw-highlight-cond', 'rw-result', 'rw-highlight-changed'],
+    render
+  });
+})();
+</script>

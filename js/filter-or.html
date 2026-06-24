@@ -1,0 +1,251 @@
+<script>
+/* ---- filter() with complex OR logic ----
+ * Marker slide: .for-slide   Stage container: #for-stage
+ * Shows how messy OR conditions work - highlights rows matching Group 1,
+ * then Group 2, then shows which rows pass (match at least one group)
+ */
+(function () {
+  const TITLE_PRE = window.FOR_TITLE_PRE || 'filter(';
+  const COND_GROUPS = window.FOR_COND_GROUPS || [];
+  const TITLE_POST = window.FOR_TITLE_POST || ')';
+  const DATA = window.FOR_DATA || [];
+  const COLS = window.FOR_COLS || ['species', 'island', 'body_mass_g'];
+  const MATCHES = window.FOR_MATCHES || [];
+
+  const ROW_H = 44, HEADER_H = 40, TABLE_Y = 110;
+  const LEFT_X = 50, RIGHT_X = 720;
+  const W_SP = 100, W_IS = 100, W_VAL = 120;
+  const ROW_W = W_SP + W_IS + W_VAL;
+
+  function hexRGB(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  const GROUP_COLORS = COND_GROUPS.map(g => {
+    const [r, g_val, b] = hexRGB(g.color);
+    return {
+      fill: `rgba(${r}, ${g_val}, ${b}, 0.25)`,
+      ink: g.color,
+    };
+  });
+
+  const PASS_COLOR = 'rgba(74, 197, 134, 0.20)';  // green for passing rows
+  const ROW_CLEAR = 'rgba(74, 134, 197, 0)';
+  const INK = 'rgb(29, 36, 51)';
+
+  function clear(rgba) {
+    const n = rgba.match(/[\d.]+/g) || [0, 0, 0];
+    return `rgba(${n[0]}, ${n[1]}, ${n[2]}, 0)`;
+  }
+
+  // A row passes if it matches AT LEAST ONE group (OR logic)
+  const N = DATA.length;
+  const PASS = DATA.map((_, i) => MATCHES.some(group => group[i]));
+  const passIdx = DATA.map((_, i) => i).filter(i => PASS[i]);
+  const M = passIdx.length;
+
+  let built = false;
+  let groupLabels = [];
+  let leftRows = [];
+  let rightEls = [];
+  let arrows = [];
+
+  function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
+  function rowCenterY(j) { return rowY(j) + ROW_H / 2; }
+
+  function makeRow(sp, isl, val, isHead) {
+    const row = document.createElement('div');
+    row.className = 'for-row' + (isHead ? ' for-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'for-cell for-species'; c1.textContent = sp;
+    const c2 = document.createElement('span'); c2.className = 'for-cell for-island'; c2.textContent = isl;
+    const c3 = document.createElement('span'); c3.className = 'for-cell for-value'; c3.textContent = val;
+    row.append(c1, c2, c3);
+    return row;
+  }
+
+  function build() {
+    const stage = document.getElementById('for-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    // Title with condition groups
+    const title = document.createElement('div');
+    title.className = 'for-title';
+    title.appendChild(document.createTextNode(TITLE_PRE));
+
+    COND_GROUPS.forEach((g, i) => {
+      if (i > 0) {
+        const orText = document.createElement('span');
+        orText.className = 'for-or-text';
+        orText.textContent = ' |';
+        title.appendChild(orText);
+        // Add line break after |
+        title.appendChild(document.createElement('br'));
+      }
+      const groupSpan = document.createElement('span');
+      groupSpan.className = 'for-group-cond';
+      groupSpan.textContent = g.text;
+      title.appendChild(groupSpan);
+      groupLabels.push(groupSpan);
+    });
+
+    title.appendChild(document.createTextNode(TITLE_POST));
+    stage.appendChild(title);
+
+    // Legend showing what each group means
+    const legend = document.createElement('div');
+    legend.className = 'for-legend';
+    COND_GROUPS.forEach((g, i) => {
+      const item = document.createElement('div');
+      item.className = 'for-legend-item';
+      const box = document.createElement('span');
+      box.className = 'for-legend-box';
+      box.style.backgroundColor = GROUP_COLORS[i].fill;
+      box.style.borderColor = GROUP_COLORS[i].ink;
+      const text = document.createElement('span');
+      text.textContent = g.label;
+      item.appendChild(box);
+      item.appendChild(text);
+      legend.appendChild(item);
+    });
+    stage.appendChild(legend);
+
+    // ---- left table ----
+    const lhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(lhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      stage.appendChild(row);
+      leftRows.push(row);
+    });
+
+    // ---- right table (result) ----
+    const rhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    rhead.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    rightEls.push(rhead);
+
+    passIdx.forEach((srcI, j) => {
+      const d = DATA[srcI];
+      const row = makeRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${RIGHT_X}px, ${rowY(j)}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      rightEls.push(row);
+    });
+
+    // ---- arrows ----
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'for-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'for-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#4ac586');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const sx = LEFT_X + ROW_W + 6;
+    const dx = RIGHT_X - 8;
+    passIdx.forEach((srcI, j) => {
+      const syy = rowCenterY(srcI), dyy = rowCenterY(j);
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'for-arrow');
+      p.setAttribute('marker-end', 'url(#for-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${syy} C ${sx + 100} ${syy}, ${dx - 100} ${dyy}, ${dx} ${dyy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const nGroups = COND_GROUPS.length;
+
+    // Stage 1-n: highlight each group's matches
+    groupLabels.forEach((label, g) => {
+      const active = stage >= g + 1;
+      const gc = GROUP_COLORS[g];
+      TM.anime({
+        targets: label,
+        backgroundColor: active ? gc.fill : clear(gc.fill),
+        color: active ? gc.ink : INK,
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    });
+
+    // Highlight rows based on current stage
+    const showOr = stage >= nGroups + 1;
+
+    leftRows.forEach((row, i) => {
+      let bgColor = ROW_CLEAR;
+      let opacity = 1;
+
+      if (showOr) {
+        // Stage n+1: show which rows pass (OR logic - at least one group matches)
+        if (PASS[i]) {
+          bgColor = PASS_COLOR;
+        } else {
+          opacity = 0.25;
+        }
+      } else if (stage >= 1 && stage <= nGroups) {
+        // Stages 1-nGroups: show only the specific group being revealed
+        const currentGroup = stage - 1;  // stage 1 = group 0, stage 2 = group 1
+        if (MATCHES[currentGroup][i]) {
+          bgColor = GROUP_COLORS[currentGroup].fill;
+        }
+      }
+
+      TM.anime({
+        targets: row,
+        backgroundColor: bgColor,
+        opacity: opacity,
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    });
+
+    // Final stage: arrows + result
+    const show = stage >= nGroups + 2;
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: show ? 0 : len,
+        opacity: show ? 1 : 0,
+        duration: 600, easing: 'easeInOutCubic',
+        delay: show ? k * 90 : 0,
+      });
+    });
+
+    TM.anime({
+      targets: rightEls,
+      opacity: show ? 1 : 0,
+      duration: 450, easing: 'easeInOutQuad',
+      delay: show ? anime.stagger(50, { start: 520 }) : 0,
+    });
+  }
+
+  TM.gate({
+    markerClass: 'for-slide',
+    fragmentIds: ['for-group-1', 'for-group-2', 'for-or', 'for-arrows'],
+    render,
+  });
+})();
+</script>

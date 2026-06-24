@@ -1,0 +1,301 @@
+<script>
+/* ---- case_when() with .default ----
+ * Marker slide: .cwd-slide   Stage container: #cwd-stage
+ * Shows how case_when() handles unmatched rows with .default parameter
+ */
+(function () {
+  const DATA = window.CWD_DATA || [];
+  const COLS = window.CWD_COLS || ['species', 'island', 'body_mass_g'];
+  const MATCHES = window.CWD_MATCHES || [];
+  const LABELS = window.CWD_LABELS || ['Large', 'Small'];
+  const COND_COLORS = window.CWD_COND_COLORS || ['#e8853a', '#4a86c5'];
+  const DEFAULT_COLOR = window.CWD_DEFAULT_COLOR || '#9b59b6';
+
+  const ROW_H = 44, HEADER_H = 40, TABLE_Y = 120;
+  const LEFT_X = 50;
+  const W_SP = 100, W_IS = 100, W_VAL = 120;
+  const ROW_W = W_SP + W_IS + W_VAL;
+  const ARROW_GAP = 180;
+  const RESULT_X = LEFT_X + ROW_W + ARROW_GAP;
+  const W_RESULT = 140;
+
+  function hexRGB(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function fade(hex) {
+    const [r, g, b] = hexRGB(hex);
+    return `rgba(${r}, ${g}, ${b}, 0)`;
+  }
+
+  const COND_FILLS = COND_COLORS.map(c => {
+    const [r, g, b] = hexRGB(c);
+    return `rgba(${r}, ${g}, ${b}, 0.25)`;
+  });
+
+  const DEFAULT_FILL = (() => {
+    const [r, g, b] = hexRGB(DEFAULT_COLOR);
+    return `rgba(${r}, ${g}, ${b}, 0.25)`;
+  })();
+
+  const INK = 'rgb(29, 36, 51)';
+  const N = DATA.length;
+
+  let built = false;
+  let leftRows = [];
+  let condBoxes = [];
+  let condSpans = [];
+  let defaultSpan = null;
+  let resultCells = [];
+  let arrows = [];
+  let defaultCells = [];
+
+  function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
+
+  function makeRow(sp, isl, val, isHead, sizeCategory) {
+    const row = document.createElement('div');
+    row.className = 'cwd-row' + (isHead ? ' cwd-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'cwd-cell cwd-species'; c1.textContent = sp;
+    const c2 = document.createElement('span'); c2.className = 'cwd-cell cwd-island'; c2.textContent = isl;
+    const c3 = document.createElement('span'); c3.className = 'cwd-cell cwd-value'; c3.textContent = val;
+    row.append(c1, c2, c3);
+    if (sizeCategory !== undefined) {
+      const c4 = document.createElement('span'); c4.className = 'cwd-cell cwd-size-cat'; c4.textContent = sizeCategory;
+      row.append(c4);
+    }
+    return row;
+  }
+
+  function build() {
+    const stage = document.getElementById('cwd-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    // Title with dynamic condition highlighting
+    const title = document.createElement('div');
+    title.className = 'cwd-title';
+    title.appendChild(document.createTextNode('mutate(size_category = case_when('));
+
+    const cond1 = document.createElement('span');
+    cond1.className = 'cwd-cond';
+    cond1.textContent = 'body_mass_g > 4500 ~ "Large"';
+    condSpans.push(cond1);
+    title.appendChild(cond1);
+
+    title.appendChild(document.createTextNode(', '));
+
+    const cond2 = document.createElement('span');
+    cond2.className = 'cwd-cond';
+    cond2.textContent = 'body_mass_g < 3800 ~ "Small"';
+    condSpans.push(cond2);
+    title.appendChild(cond2);
+
+    title.appendChild(document.createTextNode(', '));
+
+    const defaultPart = document.createElement('span');
+    defaultPart.className = 'cwd-default';
+    defaultPart.textContent = '.default = "Medium"';
+    defaultSpan = defaultPart;
+    title.appendChild(defaultPart);
+
+    title.appendChild(document.createTextNode('))'));
+    stage.appendChild(title);
+
+    // Left table
+    const lhead = makeRow(COLS[0], COLS[1], COLS[2], true);
+    lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(lhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeRow(d[0], d[1], d[2], false);
+      row.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      stage.appendChild(row);
+      leftRows.push(row);
+
+      // Create condition highlight boxes (initially hidden)
+      const CELL_PADDING_TOTAL = 24;
+      const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+      const box = document.createElement('div');
+      box.className = 'cwd-cond-box';
+      box.style.position = 'absolute';
+      box.style.width = `${BOX_WIDTH}px`;
+      box.style.height = `${ROW_H}px`;
+      box.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      box.style.backgroundColor = 'transparent';
+      box.style.pointerEvents = 'none';
+      stage.appendChild(box);
+      condBoxes.push(box);
+    });
+
+    // Result table (with all columns including new size_category)
+    const rhead = makeRow(COLS[0], COLS[1], COLS[2], true, 'size_category');
+    rhead.style.transform = `translate(${RESULT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    resultCells.push(rhead);
+
+    // Result table rows
+    DATA.forEach((d, i) => {
+      // Determine label: first condition that matches wins, else use .default value
+      let label = 'Medium';  // .default value
+      let isDefault = true;
+      for (let c = 0; c < MATCHES.length; c++) {
+        if (MATCHES[c][i]) {
+          label = LABELS[c];
+          isDefault = false;
+          break;
+        }
+      }
+
+      const row = makeRow(d[0], d[1], d[2], false, label);
+      row.style.transform = `translate(${RESULT_X}px, ${rowY(i)}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      resultCells.push(row);
+
+      // Track default cells (unmatched rows)
+      const sizeCell = row.children[3];
+      if (sizeCell && isDefault) {
+        defaultCells.push(sizeCell);
+      }
+    });
+
+    // Arrows
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'cwd-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'cwd-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#4ac586');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const CELL_PADDING_TOTAL = 24;
+    const BOX_WIDTH = W_SP + W_IS + W_VAL + (CELL_PADDING_TOTAL * 3);
+    const sx = LEFT_X + BOX_WIDTH + 8;
+    const dx = RESULT_X - 8;
+    DATA.forEach((d, i) => {
+      const yy = TABLE_Y + HEADER_H + i * ROW_H + ROW_H / 2;
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'cwd-arrow');
+      p.setAttribute('marker-end', 'url(#cwd-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${yy} L ${dx} ${yy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const nConds = 2;  // We have 2 conditions
+    const showDefault = stage >= nConds + 1;  // Stage 3
+    const showResult = stage >= nConds + 2;  // Stage 4
+
+    // Highlight condition labels in the title
+    condSpans.forEach((span, i) => {
+      const active = stage === i + 1;
+      TM.anime({
+        targets: span,
+        backgroundColor: active ? COND_FILLS[i] : fade(COND_COLORS[i]),
+        color: active ? COND_COLORS[i] : INK,
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+
+    // Highlight .default in title
+    if (defaultSpan) {
+      TM.anime({
+        targets: defaultSpan,
+        backgroundColor: showDefault ? DEFAULT_FILL : fade(DEFAULT_COLOR),
+        color: showDefault ? DEFAULT_COLOR : INK,
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    }
+
+    // Handle row highlighting based on stage
+    condBoxes.forEach((box, i) => {
+      let bgColor = 'transparent';
+
+      if (!showResult && stage >= 1 && stage <= nConds) {
+        // Show current condition's matches
+        const currentCond = stage - 1;
+        if (MATCHES[currentCond][i]) {
+          bgColor = COND_FILLS[currentCond];
+        }
+      } else if (showDefault && !showResult) {
+        // Highlight unmatched rows that will use .default
+        let isMatched = false;
+        for (let c = 0; c < MATCHES.length; c++) {
+          if (MATCHES[c][i]) {
+            isMatched = true;
+            break;
+          }
+        }
+        if (!isMatched) {
+          bgColor = DEFAULT_FILL;
+        }
+      }
+
+      TM.anime({
+        targets: box,
+        backgroundColor: bgColor,
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+
+    // Draw arrows and show result column
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: showResult ? 0 : len,
+        opacity: showResult ? 1 : 0,
+        duration: 600,
+        easing: 'easeInOutCubic',
+        delay: showResult ? k * 90 : 0
+      });
+    });
+
+    TM.anime({
+      targets: resultCells,
+      opacity: showResult ? 1 : 0,
+      duration: 450,
+      easing: 'easeInOutQuad',
+      delay: showResult ? anime.stagger(50, { start: 520 }) : 0
+    });
+
+    // Highlight the default (Medium) cells
+    defaultCells.forEach(cell => {
+      TM.anime({
+        targets: cell,
+        backgroundColor: showResult ? DEFAULT_FILL : 'transparent',
+        duration: 450,
+        easing: 'easeInOutQuad'
+      });
+    });
+  }
+
+  TM.gate({
+    markerClass: 'cwd-slide',
+    fragmentIds: ['cwd-cond-1', 'cwd-cond-2', 'cwd-default', 'cwd-result'],
+    render
+  });
+})();
+</script>
