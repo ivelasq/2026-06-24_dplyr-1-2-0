@@ -329,6 +329,13 @@
     "text": "case_when() and unmatched rows\nUnmatched rows default to NA"
   },
   {
+    "objectID": "index.html#case_when-with-.default",
+    "href": "index.html#case_when-with-.default",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "case_when() with .default",
+    "text": "case_when() with .default\nThe .default parameter provides a value for unmatched rows"
+  },
+  {
     "objectID": "index.html#case_when-wasnt-meant-to-recode-values",
     "href": "index.html#case_when-wasnt-meant-to-recode-values",
     "title": "Working smarter with dplyr 1.2.0",
