@@ -1,6 +1,6 @@
 # Working smarter with dplyr 1.2.0
 
-![](images/slide.jpeg)
+![](images/title.png)
 
 ## Details
 
