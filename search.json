@@ -1,0 +1,513 @@
+[
+  {
+    "objectID": "exercises/conversion-cheatsheet.html",
+    "href": "exercises/conversion-cheatsheet.html",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "",
+    "text": "library(dplyr)\n\nWarning: package 'dplyr' was built under R version 4.4.3\n\nlibrary(palmerpenguins)\nThis cheatsheet walks through converting old dplyr patterns to the new dplyr 1.2.0 functions. Each section shows the old way and the new way side-by-side."
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#old-way",
+    "href": "exercises/conversion-cheatsheet.html#old-way",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Old Way",
+    "text": "Old Way\n\n# Using ! negation\npenguins |&gt;\n  filter(!(species == \"Adelie\")) |&gt;\n  count(species)\n\n# A tibble: 2 × 2\n  species       n\n  &lt;fct&gt;     &lt;int&gt;\n1 Chinstrap    68\n2 Gentoo      124"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#new-way",
+    "href": "exercises/conversion-cheatsheet.html#new-way",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "New Way",
+    "text": "New Way\n\n# Clear intent: drop these rows\npenguins |&gt;\n  filter_out(species == \"Adelie\") |&gt;\n  count(species)\n\n# A tibble: 2 × 2\n  species       n\n  &lt;fct&gt;     &lt;int&gt;\n1 Chinstrap    68\n2 Gentoo      124"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#why-better",
+    "href": "exercises/conversion-cheatsheet.html#why-better",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Why Better?",
+    "text": "Why Better?\n\n✅ Clear intent (drop vs keep)\n✅ Better NA handling (keeps NAs by default)\n✅ No complex negation logic needed"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#old-way-1",
+    "href": "exercises/conversion-cheatsheet.html#old-way-1",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Old Way",
+    "text": "Old Way\n\n# Multiple | operators\npenguins |&gt;\n  filter(\n    (species == \"Adelie\" & island == \"Torgersen\" & body_mass_g &gt; 3700) |\n    (species == \"Gentoo\" & body_mass_g &gt; 5000)\n  ) |&gt;\n  select(species, island, body_mass_g)\n\n# A tibble: 83 × 3\n   species island    body_mass_g\n   &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;\n 1 Adelie  Torgersen        3750\n 2 Adelie  Torgersen        3800\n 3 Adelie  Torgersen        4675\n 4 Adelie  Torgersen        4250\n 5 Adelie  Torgersen        3800\n 6 Adelie  Torgersen        4400\n 7 Adelie  Torgersen        4500\n 8 Adelie  Torgersen        4200\n 9 Adelie  Torgersen        4450\n10 Adelie  Torgersen        3900\n# ℹ 73 more rows"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#new-way-1",
+    "href": "exercises/conversion-cheatsheet.html#new-way-1",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "New Way",
+    "text": "New Way\n\n# Clean OR logic with when_any()\npenguins |&gt;\n  filter(\n    when_any(\n      when_all(species == \"Adelie\", island == \"Torgersen\", body_mass_g &gt; 3700),\n      when_all(species == \"Gentoo\", body_mass_g &gt; 5000)\n    )\n  ) |&gt;\n  select(species, island, body_mass_g)\n\n# A tibble: 83 × 3\n   species island    body_mass_g\n   &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;\n 1 Adelie  Torgersen        3750\n 2 Adelie  Torgersen        3800\n 3 Adelie  Torgersen        4675\n 4 Adelie  Torgersen        4250\n 5 Adelie  Torgersen        3800\n 6 Adelie  Torgersen        4400\n 7 Adelie  Torgersen        4500\n 8 Adelie  Torgersen        4200\n 9 Adelie  Torgersen        4450\n10 Adelie  Torgersen        3900\n# ℹ 73 more rows"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#why-better-1",
+    "href": "exercises/conversion-cheatsheet.html#why-better-1",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Why Better?",
+    "text": "Why Better?\n\n✅ Explicit OR logic (no need to mentally parse |)\n✅ Nests cleanly with when_all()\n✅ Easier to add/remove conditions"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#old-way-2",
+    "href": "exercises/conversion-cheatsheet.html#old-way-2",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Old Way",
+    "text": "Old Way\n\n# Simple OR with |\npenguins |&gt;\n  filter(species == \"Adelie\" | body_mass_g &gt; 5000) |&gt;\n  select(species, island, body_mass_g)\n\n# A tibble: 213 × 3\n   species island    body_mass_g\n   &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;\n 1 Adelie  Torgersen        3750\n 2 Adelie  Torgersen        3800\n 3 Adelie  Torgersen        3250\n 4 Adelie  Torgersen          NA\n 5 Adelie  Torgersen        3450\n 6 Adelie  Torgersen        3650\n 7 Adelie  Torgersen        3625\n 8 Adelie  Torgersen        4675\n 9 Adelie  Torgersen        3475\n10 Adelie  Torgersen        4250\n# ℹ 203 more rows"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#new-way-2",
+    "href": "exercises/conversion-cheatsheet.html#new-way-2",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "New Way",
+    "text": "New Way\n\n# Explicit OR\npenguins |&gt;\n  filter(when_any(species == \"Adelie\", body_mass_g &gt; 5000)) |&gt;\n  select(species, island, body_mass_g)\n\n# A tibble: 213 × 3\n   species island    body_mass_g\n   &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;\n 1 Adelie  Torgersen        3750\n 2 Adelie  Torgersen        3800\n 3 Adelie  Torgersen        3250\n 4 Adelie  Torgersen          NA\n 5 Adelie  Torgersen        3450\n 6 Adelie  Torgersen        3650\n 7 Adelie  Torgersen        3625\n 8 Adelie  Torgersen        4675\n 9 Adelie  Torgersen        3475\n10 Adelie  Torgersen        4250\n# ℹ 203 more rows"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#why-better-2",
+    "href": "exercises/conversion-cheatsheet.html#why-better-2",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Why Better?",
+    "text": "Why Better?\n\n✅ Clearer intent (especially for newcomers)\n✅ Consistent with nested when_any() patterns"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#old-way-3",
+    "href": "exercises/conversion-cheatsheet.html#old-way-3",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Old Way",
+    "text": "Old Way\n\n# Repetitive == checks\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = case_when(\n      island == \"Biscoe\" ~ \"Southwest\",\n      island == \"Dream\" ~ \"Northwest\",\n      island == \"Torgersen\" ~ \"Northwest\",\n      .default = island\n    )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location\n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;          \n1 Adelie  Torgersen        3750 Northwest      \n2 Adelie  Torgersen        3800 Northwest      \n3 Adelie  Torgersen        3250 Northwest      \n4 Adelie  Torgersen          NA Northwest"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#new-way-3",
+    "href": "exercises/conversion-cheatsheet.html#new-way-3",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "New Way",
+    "text": "New Way\n\n# Direct value mapping\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = island |&gt;\n      recode_values(\n        \"Biscoe\" ~ \"Southwest\",\n        \"Dream\" ~ \"Northwest\",\n        \"Torgersen\" ~ \"Northwest\"\n      )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location\n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;          \n1 Adelie  Torgersen        3750 Northwest      \n2 Adelie  Torgersen        3800 Northwest      \n3 Adelie  Torgersen        3250 Northwest      \n4 Adelie  Torgersen          NA Northwest"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#why-better-3",
+    "href": "exercises/conversion-cheatsheet.html#why-better-3",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Why Better?",
+    "text": "Why Better?\n\n✅ No repetitive == checks\n✅ Clearer intent (recoding values)\n✅ Can use lookup tables\n✅ Better error handling with unmatched = \"error\""
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#old-way-4",
+    "href": "exercises/conversion-cheatsheet.html#old-way-4",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Old Way",
+    "text": "Old Way\n\n# Manual case_when from vectors\nisland_mapping &lt;- list(\n  \"Biscoe\" = \"Southwest\",\n  \"Dream\" = \"Northwest\",\n  \"Torgersen\" = \"Northwest\"\n)\n\n# Have to construct case_when manually\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = case_when(\n      island == \"Biscoe\" ~ island_mapping[[\"Biscoe\"]],\n      island == \"Dream\" ~ island_mapping[[\"Dream\"]],\n      island == \"Torgersen\" ~ island_mapping[[\"Torgersen\"]],\n      .default = island\n    )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location\n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;          \n1 Adelie  Torgersen        3750 Northwest      \n2 Adelie  Torgersen        3800 Northwest      \n3 Adelie  Torgersen        3250 Northwest      \n4 Adelie  Torgersen          NA Northwest"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#new-way-4",
+    "href": "exercises/conversion-cheatsheet.html#new-way-4",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "New Way",
+    "text": "New Way\n\n# Use tibble directly as lookup\nisland_mapping_tibble &lt;- tibble(\n  from = c(\"Biscoe\", \"Dream\", \"Torgersen\"),\n  to = c(\"Southwest\", \"Northwest\", \"Northwest\")\n)\n\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = island |&gt;\n      recode_values(\n        from = island_mapping_tibble$from,\n        to = island_mapping_tibble$to\n      )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location\n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;          \n1 Adelie  Torgersen        3750 Northwest      \n2 Adelie  Torgersen        3800 Northwest      \n3 Adelie  Torgersen        3250 Northwest      \n4 Adelie  Torgersen          NA Northwest"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#why-better-4",
+    "href": "exercises/conversion-cheatsheet.html#why-better-4",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Why Better?",
+    "text": "Why Better?\n\n✅ Lookup tables stored as data frames\n✅ Easy to maintain and update mappings\n✅ Can load from CSV or database"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#old-way-5",
+    "href": "exercises/conversion-cheatsheet.html#old-way-5",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Old Way",
+    "text": "Old Way\n\n# Need .default for same column\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    body_mass_g = case_when(\n      body_mass_g &gt; 5000 ~ 5000,\n      .default = body_mass_g  # Boilerplate!\n    )\n  )\n\n# A tibble: 4 × 3\n  species island    body_mass_g\n  &lt;fct&gt;   &lt;fct&gt;           &lt;dbl&gt;\n1 Adelie  Torgersen        3750\n2 Adelie  Torgersen        3800\n3 Adelie  Torgersen        3250\n4 Adelie  Torgersen          NA"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#new-way-5",
+    "href": "exercises/conversion-cheatsheet.html#new-way-5",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "New Way",
+    "text": "New Way\n\n# No .default needed!\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    body_mass_g = replace_when(\n      body_mass_g,\n      body_mass_g &gt; 5000 ~ 5000\n    )\n  )\n\n# A tibble: 4 × 3\n  species island    body_mass_g\n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;\n1 Adelie  Torgersen        3750\n2 Adelie  Torgersen        3800\n3 Adelie  Torgersen        3250\n4 Adelie  Torgersen          NA"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#why-better-5",
+    "href": "exercises/conversion-cheatsheet.html#why-better-5",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Why Better?",
+    "text": "Why Better?\n\n✅ No .default boilerplate\n✅ Clear intent (replacing specific values)\n✅ Unmatched values automatically preserved"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#old-way-6",
+    "href": "exercises/conversion-cheatsheet.html#old-way-6",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Old Way",
+    "text": "Old Way\n\n# Need .default even for exact match\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = case_when(\n      island == \"Biscoe\" ~ \"Southwest\",\n      island == \"Dream\" ~ \"Northwest\",\n      island == \"Torgersen\" ~ \"Northwest\"\n    )\n  ) |&gt;\n  mutate(\n    island_location = case_when(\n      island_location == \"Northwest\" ~ \"Northern Palmer Archipelago\",\n      .default = island_location\n    )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location            \n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;                      \n1 Adelie  Torgersen        3750 Northern Palmer Archipelago\n2 Adelie  Torgersen        3800 Northern Palmer Archipelago\n3 Adelie  Torgersen        3250 Northern Palmer Archipelago\n4 Adelie  Torgersen          NA Northern Palmer Archipelago"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#new-way-6",
+    "href": "exercises/conversion-cheatsheet.html#new-way-6",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "New Way",
+    "text": "New Way\n\n# Direct replacement\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = island |&gt;\n      recode_values(\n        \"Biscoe\" ~ \"Southwest\",\n        \"Dream\" ~ \"Northwest\",\n        \"Torgersen\" ~ \"Northwest\"\n      )\n  ) |&gt;\n  mutate(\n    island_location = island_location |&gt;\n      replace_values(\n        \"Northwest\" ~ \"Northern Palmer Archipelago\"\n      )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location            \n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;                      \n1 Adelie  Torgersen        3750 Northern Palmer Archipelago\n2 Adelie  Torgersen        3800 Northern Palmer Archipelago\n3 Adelie  Torgersen        3250 Northern Palmer Archipelago\n4 Adelie  Torgersen          NA Northern Palmer Archipelago"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#why-better-6",
+    "href": "exercises/conversion-cheatsheet.html#why-better-6",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Why Better?",
+    "text": "Why Better?\n\n✅ No .default needed\n✅ Clear that only specific values are being replaced\n✅ Works with any number of replacements"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#old-way-7",
+    "href": "exercises/conversion-cheatsheet.html#old-way-7",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Old Way",
+    "text": "Old Way\n\n# Manual validation needed\nislands &lt;- c(\"Biscoe\", \"Dream\", \"UnknownIsland\")\ndata &lt;- tibble(island = islands)\n\n# case_when() silently returns NA for unmatched\nresult &lt;- data |&gt;\n  mutate(\n    location = case_when(\n      island == \"Biscoe\" ~ \"Southwest\",\n      island == \"Dream\" ~ \"Northwest\"\n      # UnknownIsland becomes NA - no error!\n    )\n  )\n\nprint(result)\n\n# A tibble: 3 × 2\n  island        location \n  &lt;chr&gt;         &lt;chr&gt;    \n1 Biscoe        Southwest\n2 Dream         Northwest\n3 UnknownIsland &lt;NA&gt;     \n\n# Would need to manually check for NAs\nif (any(is.na(result$location))) {\n  stop(\"Unmatched values found!\")\n}\n\nError: Unmatched values found!"
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#new-way-7",
+    "href": "exercises/conversion-cheatsheet.html#new-way-7",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "New Way",
+    "text": "New Way\n\n# Automatic validation\nislands &lt;- c(\"Biscoe\", \"Dream\", \"UnknownIsland\")\ndata &lt;- tibble(island = islands)\n\n# Errors immediately on unmatched value\ndata |&gt;\n  mutate(\n    location = island |&gt;\n      recode_values(\n        \"Biscoe\" ~ \"Southwest\",\n        \"Dream\" ~ \"Northwest\",\n        unmatched = \"error\"  # Explicit error handling\n      )\n  )\n\nError in `mutate()`:\nℹ In argument: `location = recode_values(...)`.\nCaused by error in `recode_values()`:\n! Each location must be matched.\n✖ Location 3 is unmatched."
+  },
+  {
+    "objectID": "exercises/conversion-cheatsheet.html#why-better-7",
+    "href": "exercises/conversion-cheatsheet.html#why-better-7",
+    "title": "dplyr 1.2.0 Conversion Cheatsheet",
+    "section": "Why Better?",
+    "text": "Why Better?\n\n✅ Fail fast on data issues\n✅ Explicit error handling\n✅ No silent NA creation"
+  },
+  {
+    "objectID": "index.html#introduction",
+    "href": "index.html#introduction",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Introduction",
+    "text": "Introduction\n\n\n @ivelasq3\n @ivelasq\n @ivelasq\n ivelasq.rbind.io"
+  },
+  {
+    "objectID": "index.html#introduction-1",
+    "href": "index.html#introduction-1",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Introduction",
+    "text": "Introduction\n⬢ Slides available at: ivelasq.github.io/2026-06-24_dplyr-1-2-0\n⬢ Links available at the end of the slide deck"
+  },
+  {
+    "objectID": "index.html#section",
+    "href": "index.html#section",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "",
+    "text": "tidyverse.org"
+  },
+  {
+    "objectID": "index.html#section-1",
+    "href": "index.html#section-1",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "",
+    "text": "dplyr is a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges"
+  },
+  {
+    "objectID": "index.html#section-2",
+    "href": "index.html#section-2",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "",
+    "text": "dplyr 1.2.0 blog post"
+  },
+  {
+    "objectID": "index.html#dplyr-functions",
+    "href": "index.html#dplyr-functions",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "dplyr functions",
+    "text": "dplyr functions\nSo many helpful functions!\n\n\n⬢ distinct()\n⬢ slice()\n⬢ count()\n⬢ pull()\n⬢ relocate()\n⬢ rename()\n⬢ *_join()\n⬢ …\n\nBut for now, let’s focus on:\n⬢ filter()\n⬢ mutate() + case_when()\n\n\ndplyr.tidyverse.org"
+  },
+  {
+    "objectID": "index.html#quick-review-of-filter",
+    "href": "index.html#quick-review-of-filter",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Quick review of filter()",
+    "text": "Quick review of filter()\nfilter() picks cases based on their values\n\n\n\n\n\n\n\n \n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#quick-review-of-filter-1",
+    "href": "index.html#quick-review-of-filter-1",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Quick review of filter()",
+    "text": "Quick review of filter()\nfilter() picks cases based on their values\n\n\n\n\n\n\n\n   \n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#filter-is-ambiguous",
+    "href": "index.html#filter-is-ambiguous",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "filter() is ambiguous!",
+    "text": "filter() is ambiguous!\nmonthly_losses_data |&gt;\n  filter(island == \"Torgersen\")\n\nAre you keeping (filtering in) Torgersen or dropping (filtering out) Torgersen?"
+  },
+  {
+    "objectID": "index.html#filter-is-optimized-for-keeping-rows-but-dropping-rows-can-require-complex-logic",
+    "href": "index.html#filter-is-optimized-for-keeping-rows-but-dropping-rows-can-require-complex-logic",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "filter() is optimized for keeping rows, but dropping rows can require complex logic",
+    "text": "filter() is optimized for keeping rows, but dropping rows can require complex logic\nExample: Drop rows where island is Torgersen and body mass is greater than 4000g.\n\n\n\n\n\n\n\n    \n\nUsing filter() with negation drops BOTH the target row AND rows with NA!\n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#the-problem-with-using-filter-to-exclude",
+    "href": "index.html#the-problem-with-using-filter-to-exclude",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "The problem with using filter() to exclude",
+    "text": "The problem with using filter() to exclude\nTo properly use filter(), we would need to do something like:\n\npenguins_NA |&gt;\n  filter(\n    !((island == \"Torgersen\" & !is.na(island)) &\n             (body_mass_g &gt; 4000 & !is.na(body_mass_g)))\n    )"
+  },
+  {
+    "objectID": "index.html#work-smarter-with-filter_out-1",
+    "href": "index.html#work-smarter-with-filter_out-1",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Work smarter with filter_out()",
+    "text": "Work smarter with filter_out()\nfilter_out() drops rows where ALL conditions match (keeps NAs!)\n\n\n\n\n\n\n\n   \n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#when-to-use-filter-vs-filter_out",
+    "href": "index.html#when-to-use-filter-vs-filter_out",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "When to use filter() vs filter_out()",
+    "text": "When to use filter() vs filter_out()\n\n\nUse filter() to keep rows\npenguins |&gt;\n  filter(species == \"Adelie\")\n✅ Positive logic\n✅ What you want to keep\n\nUse filter_out() to drop rows\npenguins |&gt;\n  filter_out(species == \"Adelie\")\n✅ Negative logic\n✅ What you want to exclude\n\n\nRule of thumb: If you’re using ! in your filter(), consider filter_out() instead!"
+  },
+  {
+    "objectID": "index.html#confusing-logic-statements",
+    "href": "index.html#confusing-logic-statements",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Confusing logic statements",
+    "text": "Confusing logic statements\nKeep rows where Adelie penguins from Torgersen have body mass over 3700g OR where Gentoo penguins have body mass over 5000g.\n\n\n\n\n\n\n\n   \n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#work-smarter-with-filter-when_any-example",
+    "href": "index.html#work-smarter-with-filter-when_any-example",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Work smarter with filter() + when_any() example",
+    "text": "Work smarter with filter() + when_any() example\nwhen_any() cleanly expresses OR logic - keeps rows matching at least one condition\n\n\n\n\n  \n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#work-smarter-with-filter-when_any",
+    "href": "index.html#work-smarter-with-filter-when_any",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Work smarter with filter() + when_any()",
+    "text": "Work smarter with filter() + when_any()\nMore powerful when you have complex combinations to keep\n\n\n\n\n\n\n\n  \n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#work-smarter-with-filter-when_all",
+    "href": "index.html#work-smarter-with-filter-when_all",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Work smarter with filter() + when_all()",
+    "text": "Work smarter with filter() + when_all()\nwhen_all() cleanly expresses AND logic - keeps only rows matching ALL conditions\n\n\n\n\n\n\n\n  \n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#layering-when_any-when_all",
+    "href": "index.html#layering-when_any-when_all",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Layering when_any() + when_all()",
+    "text": "Layering when_any() + when_all()\nThe real power: nest when_all() inside when_any() for complex logic!\n\n\n\n\n\n\n\n  \n\nImage generated by tidy extensions"
+  },
+  {
+    "objectID": "index.html#when-to-use-when_any-vs-when_all",
+    "href": "index.html#when-to-use-when_any-vs-when_all",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "When to use when_any() vs when_all()",
+    "text": "When to use when_any() vs when_all()\n\n\nUse when_any() for OR logic\npenguins |&gt;\n  filter(when_any(\n    species == \"Adelie\",\n    body_mass_g &gt; 5000\n  ))\n✅ At least one condition must be true\n✅ Cleaner than nested | operators\n\nUse when_all() for AND logic\npenguins |&gt;\n  filter(when_all(\n    species == \"Gentoo\",\n    body_mass_g &gt; 5000\n  ))\n✅ All conditions must be true\n✅ Useful when nesting inside when_any()\n✅ For simple AND, just use commas!\n\n\nRule of thumb: If you have complex | or & expressions in your filter(), consider when_any() and when_all()!"
+  },
+  {
+    "objectID": "index.html#quick-review-of-mutate",
+    "href": "index.html#quick-review-of-mutate",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Quick review of mutate()",
+    "text": "Quick review of mutate()\nmutate() adds new columns or modifies existing ones"
+  },
+  {
+    "objectID": "index.html#quick-review-of-mutate-case_when",
+    "href": "index.html#quick-review-of-mutate-case_when",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Quick review of mutate() + case_when()",
+    "text": "Quick review of mutate() + case_when()\ncase_when() evaluates conditions in order and creates a new column"
+  },
+  {
+    "objectID": "index.html#case_when-and-unmatched-rows",
+    "href": "index.html#case_when-and-unmatched-rows",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "case_when() and unmatched rows",
+    "text": "case_when() and unmatched rows\nUnmatched rows default to NA"
+  },
+  {
+    "objectID": "index.html#case_when-wasnt-meant-to-recode-values",
+    "href": "index.html#case_when-wasnt-meant-to-recode-values",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "case_when() wasn’t meant to recode values",
+    "text": "case_when() wasn’t meant to recode values\ncase_when() evaluates multiple conditions to recode island names to locations"
+  },
+  {
+    "objectID": "index.html#use-recode_values-when-recoding-and-matching-with-values",
+    "href": "index.html#use-recode_values-when-recoding-and-matching-with-values",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Use recode_values() when recoding and matching with values",
+    "text": "Use recode_values() when recoding and matching with values\nrecode_values() matches exact values and recodes them to new values"
+  },
+  {
+    "objectID": "index.html#use-recode_values-when-recoding-and-matching-with-values-1",
+    "href": "index.html#use-recode_values-when-recoding-and-matching-with-values-1",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Use recode_values() when recoding and matching with values",
+    "text": "Use recode_values() when recoding and matching with values\nWith unmatched = \"error\", operation stops on first unmatched value"
+  },
+  {
+    "objectID": "index.html#using-recode_values-and-a-lookup-table",
+    "href": "index.html#using-recode_values-and-a-lookup-table",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Using recode_values() and a lookup table",
+    "text": "Using recode_values() and a lookup table\nThe lookup table provides the mapping from old values to new values"
+  },
+  {
+    "objectID": "index.html#when-to-use-recode_values",
+    "href": "index.html#when-to-use-recode_values",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "When to use recode_values()",
+    "text": "When to use recode_values()\n\n\nUse case_when() for conditions\npenguins |&gt;\n  mutate(size = case_when(\n    body_mass_g &gt; 4500 ~ \"Large\",\n    body_mass_g &lt; 3500 ~ \"Small\",\n    .default = \"Medium\"\n  ))\n✅ Complex logical conditions\n✅ Comparing values with &gt;, &lt;, &gt;=, etc.\n\nUse recode_values() for exact matches\npenguins |&gt;\n  mutate(location = island |&gt;\n    recode_values(\n      \"Biscoe\" ~ \"Southwest\",\n      \"Dream\" ~ \"Northwest\",\n      \"Torgersen\" ~ \"Northwest\"\n    ))\n✅ Simple == equality checks\n✅ Many values to recode\n✅ Can use a lookup table!\n\n\nRule of thumb: If you’re using == in case_when(), consider recode_values() instead!"
+  },
+  {
+    "objectID": "index.html#new-replace_values-function",
+    "href": "index.html#new-replace_values-function",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "New replace_values() function",
+    "text": "New replace_values() function\nreplace_values() replaces specific values (no need for .default)"
+  },
+  {
+    "objectID": "index.html#new-replace_when-function",
+    "href": "index.html#new-replace_when-function",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "New replace_when() function",
+    "text": "New replace_when() function\nreplace_when() replaces values based on a condition (no .default needed!)"
+  },
+  {
+    "objectID": "index.html#when-to-use-replace_",
+    "href": "index.html#when-to-use-replace_",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "When to use replace_*()",
+    "text": "When to use replace_*()\n\n\nUse case_when()/recode_values() to create a new column\npenguins |&gt;\n  mutate(size = case_when(\n    body_mass_g &gt; 4500 ~ \"Large\",\n    body_mass_g &lt; 3500 ~ \"Small\",\n    .default = \"Medium\"\n  ))\n✅ Building a new variable from scratch\n✅ Multiple outcomes based on conditions\n✅ Requires .default for unmatched cases\n\nUse replace_*() to modify an existing column\n\npenguins |&gt;\n  mutate(body_mass_g =\n    replace_when(body_mass_g,\n      body_mass_g &gt; 5000 ~ 5000\n    ))\n✅ Replacing specific values in a column\n✅ Unmatched values stay unchanged\n✅ No .default needed!\n\n\nRule of thumb: If you want to modify some values but keep the rest, use replace_*() instead of case_when()/recode_values() with .default!"
+  },
+  {
+    "objectID": "index.html#section-3",
+    "href": "index.html#section-3",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "",
+    "text": "case_match() has been soft deprecated"
+  },
+  {
+    "objectID": "index.html#section-4",
+    "href": "index.html#section-4",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "",
+    "text": "dplyr performance blog post"
+  },
+  {
+    "objectID": "index.html#updating-your-llm",
+    "href": "index.html#updating-your-llm",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Updating your LLM",
+    "text": "Updating your LLM\n\nPaste documentation into the conversation\nAdd a CLAUDE.md or SKILL.md file to your project\nPoint it to the docs\nUse an MCP server"
+  },
+  {
+    "objectID": "index.html#community-feedback-is-sooo-important",
+    "href": "index.html#community-feedback-is-sooo-important",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Community feedback is sooo important",
+    "text": "Community feedback is sooo important\n\n\n\nWe are looking for #rstats community feedback on 3 new dplyr functions!\nWe're aiming to expand the filter() family:\n\nfilter() to keep rows\nfilter_out() to drop rows\nwhen_any() and when_all() as modifiers\n\nRead more and leave feedback here: github.com/tidyverse/ti…[image or embed]\n\n— Davis Vaughan (@davisvaughan.bsky.social) November 7, 2025 at 10:03 AM"
+  },
+  {
+    "objectID": "index.html#section-5",
+    "href": "index.html#section-5",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "",
+    "text": "Tidyups repo"
+  },
+  {
+    "objectID": "index.html#community-feedback-is-sooo-important-1",
+    "href": "index.html#community-feedback-is-sooo-important-1",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Community feedback is sooo important",
+    "text": "Community feedback is sooo important"
+  },
+  {
+    "objectID": "index.html#rules-of-thumb",
+    "href": "index.html#rules-of-thumb",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Rules of thumb",
+    "text": "Rules of thumb\n⬢ Use filter() to keep rows\n⬢ Use filter_out() to drop rows (if you’re using ! in filter())\n⬢ Use when_any() for OR logic (if you have complex | expressions)\n⬢ Use when_all() for AND logic (useful when nesting inside when_any())\n⬢ Use recode_values() for exact matches (if you’re using == in case_when())\n⬢ Use replace_*() to modify some existing columns"
+  },
+  {
+    "objectID": "index.html#installing-dplyr-1.2.0",
+    "href": "index.html#installing-dplyr-1.2.0",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Installing dplyr 1.2.0",
+    "text": "Installing dplyr 1.2.0\nUpgrade today!\ninstall.packages(\"pak\")\npak::pak(\"dplyr\")"
+  },
+  {
+    "objectID": "index.html#acknowledgements",
+    "href": "index.html#acknowledgements",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Acknowledgements",
+    "text": "Acknowledgements\n\nDavis Vaughan and the tidyverse team\nLibby Heeren for her awesome example\nEmojis from OpenMoji\nPhoto from Unsplash"
+  },
+  {
+    "objectID": "index.html#links",
+    "href": "index.html#links",
+    "title": "Working smarter with dplyr 1.2.0",
+    "section": "Links",
+    "text": "Links\n\ntidyverse.org\ndplyr\ndplyr 1.2.0 blog post\ndplyr performance blog post\nLibby’s LinkedIn post\nTidyups repo\nCrystal Lewis blog post\nData Science Lab YouTube playlist\nquarto-revealjs-editable extension by Emil Hvitfeldt\ntidy-animations by Emil Hvitfeldt"
+  },
+  {
+    "objectID": "exercises/old-patterns.html",
+    "href": "exercises/old-patterns.html",
+    "title": "Old Patterns - Pre-dplyr 1.2.0",
+    "section": "",
+    "text": "library(dplyr)\n\nWarning: package 'dplyr' was built under R version 4.4.3\n\nlibrary(palmerpenguins)\nThis document shows working examples of the “old” ways of doing common data manipulation tasks that dplyr 1.2.0’s new functions are designed to improve."
+  },
+  {
+    "objectID": "exercises/old-patterns.html#filtering-out-rows-old-way",
+    "href": "exercises/old-patterns.html#filtering-out-rows-old-way",
+    "title": "Old Patterns - Pre-dplyr 1.2.0",
+    "section": "Filtering Out Rows (Old Way)",
+    "text": "Filtering Out Rows (Old Way)\nProblem: Using ! negation with filter() to drop rows\n\n# Drop rows where species is Adelie\npenguins |&gt;\n  filter(!(species == \"Adelie\")) |&gt;\n  count(species)\n\n# A tibble: 2 × 2\n  species       n\n  &lt;fct&gt;     &lt;int&gt;\n1 Chinstrap    68\n2 Gentoo      124\n\n\nProblem with NA handling:\n\n# Create data with NA\npenguins_na &lt;- penguins |&gt;\n  mutate(island = if_else(row_number() == 1, NA_character_, island))\n\n# Using ! drops both the target AND NAs!\npenguins_na |&gt;\n  filter(!(island == \"Torgersen\" & body_mass_g &gt; 4000))\n\n# A tibble: 332 × 8\n   species island    bill_length_mm bill_depth_mm flipper_length_mm body_mass_g\n   &lt;fct&gt;   &lt;chr&gt;              &lt;dbl&gt;         &lt;dbl&gt;             &lt;int&gt;       &lt;int&gt;\n 1 Adelie  &lt;NA&gt;                39.1          18.7               181        3750\n 2 Adelie  Torgersen           39.5          17.4               186        3800\n 3 Adelie  Torgersen           40.3          18                 195        3250\n 4 Adelie  Torgersen           36.7          19.3               193        3450\n 5 Adelie  Torgersen           39.3          20.6               190        3650\n 6 Adelie  Torgersen           38.9          17.8               181        3625\n 7 Adelie  Torgersen           34.1          18.1               193        3475\n 8 Adelie  Torgersen           37.8          17.1               186        3300\n 9 Adelie  Torgersen           37.8          17.3               180        3700\n10 Adelie  Torgersen           41.1          17.6               182        3200\n# ℹ 322 more rows\n# ℹ 2 more variables: sex &lt;fct&gt;, year &lt;int&gt;\n\n\nCorrect but complex workaround:\n\npenguins_na |&gt;\n  filter(\n    !((island == \"Torgersen\" & !is.na(island)) &\n      (body_mass_g &gt; 4000 & !is.na(body_mass_g)))\n  )\n\n# A tibble: 333 × 8\n   species island    bill_length_mm bill_depth_mm flipper_length_mm body_mass_g\n   &lt;fct&gt;   &lt;chr&gt;              &lt;dbl&gt;         &lt;dbl&gt;             &lt;int&gt;       &lt;int&gt;\n 1 Adelie  &lt;NA&gt;                39.1          18.7               181        3750\n 2 Adelie  Torgersen           39.5          17.4               186        3800\n 3 Adelie  Torgersen           40.3          18                 195        3250\n 4 Adelie  Torgersen           NA            NA                  NA          NA\n 5 Adelie  Torgersen           36.7          19.3               193        3450\n 6 Adelie  Torgersen           39.3          20.6               190        3650\n 7 Adelie  Torgersen           38.9          17.8               181        3625\n 8 Adelie  Torgersen           34.1          18.1               193        3475\n 9 Adelie  Torgersen           37.8          17.1               186        3300\n10 Adelie  Torgersen           37.8          17.3               180        3700\n# ℹ 323 more rows\n# ℹ 2 more variables: sex &lt;fct&gt;, year &lt;int&gt;"
+  },
+  {
+    "objectID": "exercises/old-patterns.html#complex-or-logic-old-way",
+    "href": "exercises/old-patterns.html#complex-or-logic-old-way",
+    "title": "Old Patterns - Pre-dplyr 1.2.0",
+    "section": "Complex OR Logic (Old Way)",
+    "text": "Complex OR Logic (Old Way)\nProblem: Multiple | operators become hard to read\n\n# Keep Adelie from Torgersen with body mass &gt; 3700g OR Gentoo with body mass &gt; 5000g\npenguins |&gt;\n  filter(\n    (species == \"Adelie\" & island == \"Torgersen\" & body_mass_g &gt; 3700) |\n    (species == \"Gentoo\" & body_mass_g &gt; 5000)\n  ) |&gt;\n  select(species, island, body_mass_g)\n\n# A tibble: 83 × 3\n   species island    body_mass_g\n   &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;\n 1 Adelie  Torgersen        3750\n 2 Adelie  Torgersen        3800\n 3 Adelie  Torgersen        4675\n 4 Adelie  Torgersen        4250\n 5 Adelie  Torgersen        3800\n 6 Adelie  Torgersen        4400\n 7 Adelie  Torgersen        4500\n 8 Adelie  Torgersen        4200\n 9 Adelie  Torgersen        4450\n10 Adelie  Torgersen        3900\n# ℹ 73 more rows"
+  },
+  {
+    "objectID": "exercises/old-patterns.html#complex-and-logic-old-way",
+    "href": "exercises/old-patterns.html#complex-and-logic-old-way",
+    "title": "Old Patterns - Pre-dplyr 1.2.0",
+    "section": "Complex AND Logic (Old Way)",
+    "text": "Complex AND Logic (Old Way)\nProblem: Nested conditions are hard to track\n\n# Keep only Adelie from Torgersen with body mass &gt; 3700g\npenguins |&gt;\n  filter(\n    species == \"Adelie\" &\n    island == \"Torgersen\" &\n    body_mass_g &gt; 3700\n  ) |&gt;\n  select(species, island, body_mass_g)\n\n# A tibble: 22 × 3\n   species island    body_mass_g\n   &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;\n 1 Adelie  Torgersen        3750\n 2 Adelie  Torgersen        3800\n 3 Adelie  Torgersen        4675\n 4 Adelie  Torgersen        4250\n 5 Adelie  Torgersen        3800\n 6 Adelie  Torgersen        4400\n 7 Adelie  Torgersen        4500\n 8 Adelie  Torgersen        4200\n 9 Adelie  Torgersen        4450\n10 Adelie  Torgersen        3900\n# ℹ 12 more rows\n\n\nNested OR and AND:\n\n# Complex: (Adelie from Torgersen with mass &gt; 3700) OR (Gentoo from Biscoe)\npenguins |&gt;\n  filter(\n    ((species == \"Adelie\" & island == \"Torgersen\") & body_mass_g &gt; 3700) |\n    (species == \"Gentoo\" & island == \"Biscoe\")\n  ) |&gt;\n  select(species, island, body_mass_g)\n\n# A tibble: 146 × 3\n   species island    body_mass_g\n   &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;\n 1 Adelie  Torgersen        3750\n 2 Adelie  Torgersen        3800\n 3 Adelie  Torgersen        4675\n 4 Adelie  Torgersen        4250\n 5 Adelie  Torgersen        3800\n 6 Adelie  Torgersen        4400\n 7 Adelie  Torgersen        4500\n 8 Adelie  Torgersen        4200\n 9 Adelie  Torgersen        4450\n10 Adelie  Torgersen        3900\n# ℹ 136 more rows"
+  },
+  {
+    "objectID": "exercises/old-patterns.html#recoding-values-with-case_when-old-way",
+    "href": "exercises/old-patterns.html#recoding-values-with-case_when-old-way",
+    "title": "Old Patterns - Pre-dplyr 1.2.0",
+    "section": "Recoding Values with case_when() (Old Way)",
+    "text": "Recoding Values with case_when() (Old Way)\nProblem: Using case_when() with multiple == checks for simple value mapping\n\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = case_when(\n      island == \"Biscoe\" ~ \"Southwest\",\n      island == \"Dream\" ~ \"Northwest\",\n      island == \"Torgersen\" ~ \"Northwest\",\n      .default = island\n    )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location\n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;          \n1 Adelie  Torgersen        3750 Northwest      \n2 Adelie  Torgersen        3800 Northwest      \n3 Adelie  Torgersen        3250 Northwest      \n4 Adelie  Torgersen          NA Northwest      \n\n\nProblem with unmatched values:\n\n# Unmatched values become NA\npenguins |&gt;\n  slice(1:5) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    size = case_when(\n      body_mass_g &gt; 4500 ~ \"Large\",\n      body_mass_g &lt; 3500 ~ \"Small\"\n      # Missing .default, so 3500-4500 becomes NA\n    )\n  )\n\n# A tibble: 5 × 4\n  species island    body_mass_g size \n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;\n1 Adelie  Torgersen        3750 &lt;NA&gt; \n2 Adelie  Torgersen        3800 &lt;NA&gt; \n3 Adelie  Torgersen        3250 Small\n4 Adelie  Torgersen          NA &lt;NA&gt; \n5 Adelie  Torgersen        3450 Small"
+  },
+  {
+    "objectID": "exercises/old-patterns.html#using-case_match-old-way---now-soft-deprecated",
+    "href": "exercises/old-patterns.html#using-case_match-old-way---now-soft-deprecated",
+    "title": "Old Patterns - Pre-dplyr 1.2.0",
+    "section": "Using case_match() (Old Way - Now Soft Deprecated)",
+    "text": "Using case_match() (Old Way - Now Soft Deprecated)\nProblem: case_match() is being deprecated in favor of recode_values()\n\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = case_match(\n      island,\n      \"Biscoe\" ~ \"Southwest\",\n      \"Dream\" ~ \"Northwest\",\n      \"Torgersen\" ~ \"Northwest\",\n      .default = island\n    )\n  )\n\nWarning: There was 1 warning in `mutate()`.\nℹ In argument: `island_location = case_match(...)`.\nCaused by warning:\n! `case_match()` was deprecated in dplyr 1.2.0.\nℹ Please use `recode_values()` instead.\n\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location\n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;          \n1 Adelie  Torgersen        3750 Northwest      \n2 Adelie  Torgersen        3800 Northwest      \n3 Adelie  Torgersen        3250 Northwest      \n4 Adelie  Torgersen          NA Northwest"
+  },
+  {
+    "objectID": "exercises/old-patterns.html#replacing-values-with-case_when-old-way",
+    "href": "exercises/old-patterns.html#replacing-values-with-case_when-old-way",
+    "title": "Old Patterns - Pre-dplyr 1.2.0",
+    "section": "Replacing Values with case_when() (Old Way)",
+    "text": "Replacing Values with case_when() (Old Way)\nProblem: Using case_when() with .default for simple replacements\n\n# Cap body_mass_g at 5000g\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    body_mass_g_capped = case_when(\n      body_mass_g &gt; 5000 ~ 5000,\n      .default = body_mass_g  # Must specify .default even though it's the same column\n    )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g body_mass_g_capped\n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt;              &lt;dbl&gt;\n1 Adelie  Torgersen        3750               3750\n2 Adelie  Torgersen        3800               3800\n3 Adelie  Torgersen        3250               3250\n4 Adelie  Torgersen          NA                 NA\n\n\nEven for single replacements:\n\n# Replace just Northwest with a longer name\npenguins |&gt;\n  slice(1:4) |&gt;\n  select(species, island, body_mass_g) |&gt;\n  mutate(\n    island_location = case_when(\n      island == \"Biscoe\" ~ \"Southwest\",\n      island == \"Dream\" ~ \"Northwest\",\n      island == \"Torgersen\" ~ \"Northwest\"\n    )\n  ) |&gt;\n  mutate(\n    island_location = case_when(\n      island_location == \"Northwest\" ~ \"Northern Palmer Archipelago\",\n      .default = island_location  # Boilerplate!\n    )\n  )\n\n# A tibble: 4 × 4\n  species island    body_mass_g island_location            \n  &lt;fct&gt;   &lt;fct&gt;           &lt;int&gt; &lt;chr&gt;                      \n1 Adelie  Torgersen        3750 Northern Palmer Archipelago\n2 Adelie  Torgersen        3800 Northern Palmer Archipelago\n3 Adelie  Torgersen        3250 Northern Palmer Archipelago\n4 Adelie  Torgersen          NA Northern Palmer Archipelago"
+  },
+  {
+    "objectID": "exercises/old-patterns.html#summary-of-pain-points",
+    "href": "exercises/old-patterns.html#summary-of-pain-points",
+    "title": "Old Patterns - Pre-dplyr 1.2.0",
+    "section": "Summary of Pain Points",
+    "text": "Summary of Pain Points\n\nfilter() with !: Complex NA handling, unclear intent\nComplex | and &: Hard to read nested logic\ncase_when() for exact matches: Repetitive == checks\ncase_when() for replacements: Unnecessary .default boilerplate\ncase_match(): Being deprecated, used for simple value mapping\n\nAll of these patterns work, but dplyr 1.2.0 provides clearer, more expressive alternatives!"
+  }
+]
