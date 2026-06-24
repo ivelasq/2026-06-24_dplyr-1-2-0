@@ -1,0 +1,343 @@
+---
+title: "Solutions: dplyr 1.2.0 New Functions"
+subtitle: "Solutions to exercises.qmd — numbered to match"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: false
+---
+
+```{r}
+#| label: setup
+#| message: false
+library(dplyr)
+library(palmerpenguins)
+```
+
+Each solution below corresponds directly to the exercise with the same number in
+`exercises.qmd`. The task description is repeated for reference.
+
+---
+
+## Data Overview
+
+```{r}
+#| label: data-overview
+glimpse(penguins)
+```
+
+```{r}
+#| label: counts-species
+count(penguins, species)
+```
+
+```{r}
+#| label: counts-island
+count(penguins, island)
+```
+
+```{r}
+#| label: counts-species-island
+count(penguins, species, island)
+```
+
+```{r}
+#| label: body-mass-range
+penguins |>
+  summarise(
+    min_body_mass = min(body_mass_g, na.rm = TRUE),
+    max_body_mass = max(body_mass_g, na.rm = TRUE),
+    n_above_5000  = sum(body_mass_g > 5000, na.rm = TRUE),
+    n_missing     = sum(is.na(body_mass_g))
+  )
+```
+
+---
+
+# Part 1: `filter()` Family
+
+---
+
+## Solution 1 → Exercise 1: `filter_out()`
+
+**Task:** Drop rows where `island == "Torgersen"` **and** `body_mass_g > 4000` are
+both true. Rows with `NA` should be kept.
+
+```{r}
+#| label: sol1-data
+penguins_small <- tibble(
+  species     = rep("Adelie", 5),
+  island      = c("Torgersen", "Biscoe", "Dream", "Torgersen", "Torgersen"),
+  body_mass_g = c(3750, 3800, 3300, 4500, NA_real_)
+)
+```
+
+```{r}
+#| label: sol1-new
+# filter_out() drops rows where ALL listed conditions are TRUE.
+# Rows where any condition is NA are kept — no extra is.na() calls needed.
+penguins_small |>
+  filter_out(island == "Torgersen", body_mass_g > 4000)
+```
+
+**Why `filter_out()` is better:**
+
+- Intent is explicit: you're *dropping*, not keeping
+- `NA` rows are preserved automatically
+- No need to negate (`!`) or manually guard against `NA`s
+
+---
+
+## Solution 2 → Exercise 2: `when_any()` (simple OR)
+
+**Task:** Keep rows where `species == "Adelie"` **or** `body_mass_g > 5000`.
+
+```{r}
+#| label: sol2-new
+penguins |>
+  filter(when_any(
+    species == "Adelie",
+    body_mass_g > 5000
+  )) |>
+  select(species, island, body_mass_g)
+```
+
+**Why `when_any()` is better:**
+
+- Makes the OR logic explicit and readable at a glance
+- Each condition sits on its own line — easy to add or remove conditions
+- Consistent syntax with the nested `when_any(when_all(...))` pattern (Solution 3)
+
+---
+
+## Solution 3 → Exercise 3: `when_any()` + `when_all()` (complex OR)
+
+**Task:** Keep rows where:
+- **Group A:** `species == "Adelie"` AND `island == "Torgersen"` AND `body_mass_g > 3700`, **or**
+- **Group B:** `species == "Gentoo"` AND `body_mass_g > 5000`
+
+```{r}
+#| label: sol3-data
+penguins_filters <- tibble(
+  species     = c("Adelie", "Adelie", "Adelie", "Adelie",
+                  "Gentoo", "Gentoo", "Gentoo", "Gentoo"),
+  island      = c("Torgersen", "Torgersen", "Dream", "Biscoe",
+                  "Biscoe",    "Dream",     "Biscoe", "Dream"),
+  body_mass_g = c(3750, 3800, 3250, NA_real_,
+                  4500, 5700, 4450, 5700)
+)
+```
+
+```{r}
+#| label: sol3-new
+# when_all() bundles AND conditions into one unit.
+# when_any() then applies OR across those bundles.
+penguins_filters |>
+  filter(
+    when_any(
+      when_all(species == "Adelie", island == "Torgersen", body_mass_g > 3700),
+      when_all(species == "Gentoo", body_mass_g > 5000)
+    )
+  )
+```
+
+**Why `when_any()` + `when_all()` is better:**
+
+- Groups AND conditions together visually instead of relying on `()` nesting
+- The two groups are clearly separated — easy to add a third group
+- Matches how you'd describe the logic in plain English: "any of these groups"
+
+---
+
+## Solution 4 → Exercise 4: `when_all()` (AND)
+
+**Task:** Keep rows where `species == "Gentoo"` **and** `body_mass_g > 5000`.
+
+```{r}
+#| label: sol4-data
+penguins_when_all <- tibble(
+  species     = c("Adelie", "Adelie", "Adelie", "Adelie",
+                  "Gentoo", "Gentoo", "Gentoo", "Gentoo"),
+  island      = c("Torgersen", "Dream", "Biscoe", "Torgersen",
+                  "Biscoe",    "Dream", "Biscoe", "Dream"),
+  body_mass_g = c(3750, 3800, 3250, NA_real_,
+                  4500, 5700, 4450, 5700)
+)
+```
+
+```{r}
+#| label: sol4-new
+# when_all() makes AND logic explicit.
+penguins_when_all |>
+  filter(when_all(species == "Gentoo", body_mass_g > 5000))
+```
+
+**Why `when_all()` is better:**
+
+- Symmetrical with `when_any()` — one consistent set of verbs for boolean logic
+- Easy to nest inside `when_any()` when your logic grows more complex
+- For simple AND, commas in `filter()` still work fine too
+
+> **Rule of thumb:** For simple `&` conditions, plain commas in `filter()` are
+> fine. Reach for `when_all()` when you need to nest it inside `when_any()`.
+
+---
+
+# Part 2: Recoding Values
+
+---
+
+## Solution 5 → Exercise 5: `recode_values()` inline
+
+**Task:** Add an `island_location` column using the mapping
+Biscoe → Southwest, Dream → Northwest, Torgersen → Northwest.
+
+```{r}
+#| label: sol5-data
+penguins_islands <- tibble(
+  species     = c("Adelie", "Adelie", "Adelie", "Gentoo"),
+  island      = c("Biscoe", "Dream", "Torgersen", "Biscoe"),
+  body_mass_g = c(3750, 3800, 4750, 5000)
+)
+```
+
+```{r}
+#| label: sol5-new
+# recode_values() uses formula syntax: "old_value" ~ "new_value"
+# No repetitive == checks needed.
+penguins_islands |>
+  mutate(
+    island_location = island |>
+      recode_values(
+        "Biscoe"    ~ "Southwest",
+        "Dream"     ~ "Northwest",
+        "Torgersen" ~ "Northwest"
+      )
+  )
+```
+
+**Why `recode_values()` is better:**
+
+- No repeated `island ==` on every line
+- Formula syntax (`"old" ~ "new"`) clearly states input → output
+- Unmatched values are `NA` by default; use `unmatched = "error"` to catch surprises
+
+---
+
+## Solution 6 → Exercise 6: `recode_values()` with a lookup table
+
+**Task:** Same island → location mapping, but sourced from the `island_lookup` table.
+
+```{r}
+#| label: sol6-data
+island_lookup <- tibble(
+  from = c("Biscoe", "Dream", "Torgersen"),
+  to   = c("Southwest", "Northwest", "Northwest")
+)
+
+island_lookup
+```
+
+```{r}
+#| label: sol6-new
+# Pass the lookup table's columns directly to from = / to =
+penguins_islands |>
+  mutate(
+    island_location = island |>
+      recode_values(
+        from = island_lookup$from,
+        to   = island_lookup$to
+      )
+  )
+```
+
+**Why `recode_values()` with a lookup table is better:**
+
+- The mapping lives in a data frame — easy to load from a CSV or database
+- Adding or changing a mapping means editing the table, not the pipeline
+- Works seamlessly with `from =` / `to =` vectors of any length
+
+---
+
+## Solution 7 → Exercise 7: `replace_values()`
+
+**Task:** In `island_location`, replace `"Northwest"` with
+`"Northern Palmer Archipelago"`. Leave other values unchanged.
+
+```{r}
+#| label: sol7-data
+penguins_locations <- tibble(
+  species         = c("Adelie", "Adelie", "Adelie", "Gentoo"),
+  island          = c("Biscoe", "Dream", "Torgersen", "Biscoe"),
+  body_mass_g     = c(3750, 3800, 4750, 5000),
+  island_location = c("Southwest", "Northwest", "Northwest", "Southwest")
+)
+```
+
+```{r}
+#| label: sol7-new
+# replace_values() replaces exact matches in place.
+# Unmatched values are left as-is — no .default needed.
+penguins_locations |>
+  mutate(
+    island_location = island_location |>
+      replace_values("Northwest" ~ "Northern Palmer Archipelago")
+  )
+```
+
+**Why `replace_values()` is better:**
+
+- No `.default = island_location` boilerplate
+- Intent is clear: you're *replacing* a value, not rebuilding the column
+- Use multiple formulas to replace several values in one call
+
+---
+
+## Solution 8 → Exercise 8: `replace_when()`
+
+**Task:** Cap `body_mass_g` at 5000 g. Values above 5000 become 5000;
+everything else stays the same.
+
+```{r}
+#| label: sol8-data
+penguins_large <- tibble(
+  species     = c("Adelie", "Adelie", "Gentoo", "Gentoo"),
+  island      = c("Biscoe", "Dream",  "Biscoe", "Biscoe"),
+  body_mass_g = c(3750, 3800, 5200, 5400)
+)
+```
+
+```{r}
+#| label: sol8-new
+# replace_when() takes: the column to modify, then condition ~ replacement pairs.
+# Rows that don't match any condition keep their original value automatically.
+penguins_large |>
+  mutate(
+    body_mass_g = replace_when(
+      body_mass_g,
+      body_mass_g > 5000 ~ 5000
+    )
+  )
+```
+
+**Why `replace_when()` is better:**
+
+- No `.default = body_mass_g` boilerplate
+- Clear that you're *modifying* an existing column, not building a new one
+- Use multiple `condition ~ value` pairs to handle several replacements at once
+
+---
+
+# Quick Reference
+
+| Exercise | Task | Old function | New function |
+|----------|------|-------------|-------------|
+| 1 | Drop rows matching all conditions | `filter(!(cond1 & cond2))` with NA guards | `filter_out(cond1, cond2)` |
+| 2 | Keep rows matching any condition | `filter(a \| b)` | `filter(when_any(a, b))` |
+| 3 | Complex grouped OR logic | `filter((a & b & c) \| (d & e))` | `filter(when_any(when_all(a, b, c), when_all(d, e)))` |
+| 4 | Keep rows matching all conditions | `filter(a & b)` | `filter(when_all(a, b))` |
+| 5 | Recode values (inline) | `mutate(case_when(x == "a" ~ "A", ...))` | `mutate(recode_values("a" ~ "A", ...))` |
+| 6 | Recode values (lookup table) | Manual `case_when()` from vectors | `recode_values(from = ..., to = ...)` |
+| 7 | Replace exact values in column | `case_when(x == "a" ~ "A", .default = x)` | `replace_values("a" ~ "A")` |
+| 8 | Replace values by condition | `case_when(cond ~ val, .default = x)` | `replace_when(x, cond ~ val)` |

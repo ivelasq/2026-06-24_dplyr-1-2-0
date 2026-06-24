@@ -1,0 +1,376 @@
+---
+title: "Exercises: Pre-dplyr 1.2.0 Patterns"
+subtitle: "Rewrite these using dplyr 1.2.0's new functions — see solutions.qmd for answers"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: false
+---
+
+```{r}
+#| label: setup
+#| message: false
+library(dplyr)
+library(palmerpenguins)
+```
+
+Each exercise below uses a **pre-dplyr 1.2.0** approach. Your task is to rewrite it
+using the corresponding new function from dplyr 1.2.0. Every exercise has a matching
+solution in `solutions.qmd` (Exercise 1 → Solution 1, and so on).
+
+---
+
+## Data Overview
+
+The exercises use the `penguins` dataset from the `palmerpenguins` package and
+several small samples drawn from it. Here are some quick counts to help you reason
+about expected results.
+
+```{r}
+#| label: data-overview
+glimpse(penguins)
+```
+
+```{r}
+#| label: counts-species
+count(penguins, species)
+```
+
+```{r}
+#| label: counts-island
+count(penguins, island)
+```
+
+```{r}
+#| label: counts-species-island
+count(penguins, species, island)
+```
+
+```{r}
+#| label: body-mass-range
+penguins |>
+  summarise(
+    min_body_mass = min(body_mass_g, na.rm = TRUE),
+    max_body_mass = max(body_mass_g, na.rm = TRUE),
+    n_above_5000   = sum(body_mass_g > 5000, na.rm = TRUE),
+    n_missing      = sum(is.na(body_mass_g))
+  )
+```
+
+---
+
+# Part 1: `filter()` Family
+
+---
+
+## Exercise 1: Dropping rows with complex conditions
+
+This small sample mirrors the animation from the presentation. It includes an `NA`
+in `body_mass_g` that makes negation-based filtering tricky.
+
+```{r}
+#| label: ex1-data
+penguins_small <- tibble(
+  species     = rep("Adelie", 5),
+  island      = c("Torgersen", "Biscoe", "Dream", "Torgersen", "Torgersen"),
+  body_mass_g = c(3750, 3800, 3300, 4500, NA_real_)
+)
+
+penguins_small
+```
+
+**Task:** Drop rows where **both** `island == "Torgersen"` **and**
+`body_mass_g > 4000` are true. Rows where either condition is missing (`NA`) should
+be *kept*.
+
+Expected rows remaining after the operation:
+
+| species | island    | body_mass_g | Why kept                                              |
+|---------|-----------|-------------|-------------------------------------------------------|
+| Adelie  | Biscoe    | 3800        | Island ≠ Torgersen                                    |
+| Adelie  | Dream     | 3300        | Island ≠ Torgersen                                    |
+| Adelie  | Torgersen | NA          | body_mass_g is NA — can't confirm it's > 4000, keep it |
+
+```{r}
+#| label: ex1-old
+penguins_small |>
+  filter(
+    !((island == "Torgersen" & !is.na(island)) &
+        (body_mass_g > 4000 & !is.na(body_mass_g)))
+  )
+```
+
+> **Your turn:** Rewrite using `filter_out()` — see Solution 1.
+
+---
+
+## Exercise 2: Simple OR filtering
+
+**Task:** From the full `penguins` dataset, keep rows where `species == "Adelie"` **or**
+`body_mass_g > 5000`.
+
+```{r}
+#| label: ex2-context
+# Helpful counts — how many rows do we expect?
+cat("Adelie rows:", sum(penguins$species == "Adelie", na.rm = TRUE), "\n")
+cat("body_mass_g > 5000 (non-Adelie):",
+    sum(penguins$body_mass_g > 5000 & penguins$species != "Adelie", na.rm = TRUE), "\n")
+```
+
+```{r}
+#| label: ex2-old
+penguins |>
+  filter(species == "Adelie" | body_mass_g > 5000) |>
+  select(species, island, body_mass_g)
+```
+
+> **Your turn:** Rewrite using `filter()` + `when_any()` — see Solution 2.
+
+---
+
+## Exercise 3: Complex OR filtering with grouped conditions
+
+This sample matches the presentation animation. Each group of conditions must all be
+true together before the OR is applied.
+
+```{r}
+#| label: ex3-data
+penguins_filters <- tibble(
+  species     = c("Adelie", "Adelie", "Adelie", "Adelie",
+                  "Gentoo", "Gentoo", "Gentoo", "Gentoo"),
+  island      = c("Torgersen", "Torgersen", "Dream", "Biscoe",
+                  "Biscoe",    "Dream",     "Biscoe", "Dream"),
+  body_mass_g = c(3750, 3800, 3250, NA_real_,
+                  4500, 5700, 4450, 5700)
+)
+
+penguins_filters
+```
+
+**Task:** Keep rows where:
+- **Group A:** `species == "Adelie"` AND `island == "Torgersen"` AND `body_mass_g > 3700`, **or**
+- **Group B:** `species == "Gentoo"` AND `body_mass_g > 5000`
+
+Expected result (4 rows):
+
+| species | island    | body_mass_g | Matched group |
+|---------|-----------|-------------|---------------|
+| Adelie  | Torgersen | 3750        | A             |
+| Adelie  | Torgersen | 3800        | A             |
+| Gentoo  | Dream     | 5700        | B             |
+| Gentoo  | Dream     | 5700        | B             |
+
+```{r}
+#| label: ex3-old
+penguins_filters |>
+  filter(
+    (species == "Adelie" & island == "Torgersen" & body_mass_g > 3700) |
+    (species == "Gentoo" & body_mass_g > 5000)
+  )
+```
+
+> **Your turn:** Rewrite using `when_any()` nested inside `when_all()` — see Solution 3.
+
+---
+
+## Exercise 4: AND filtering
+
+This sample mirrors the `when_all()` animation.
+
+```{r}
+#| label: ex4-data
+penguins_when_all <- tibble(
+  species     = c("Adelie", "Adelie", "Adelie", "Adelie",
+                  "Gentoo", "Gentoo", "Gentoo", "Gentoo"),
+  island      = c("Torgersen", "Dream", "Biscoe", "Torgersen",
+                  "Biscoe",    "Dream", "Biscoe", "Dream"),
+  body_mass_g = c(3750, 3800, 3250, NA_real_,
+                  4500, 5700, 4450, 5700)
+)
+
+penguins_when_all
+```
+
+**Task:** Keep rows where `species == "Gentoo"` **and** `body_mass_g > 5000`.
+
+Expected result (2 rows):
+
+| species | island | body_mass_g |
+|---------|--------|-------------|
+| Gentoo  | Dream  | 5700        |
+| Gentoo  | Dream  | 5700        |
+
+```{r}
+#| label: ex4-old
+penguins_when_all |>
+  filter(species == "Gentoo" & body_mass_g > 5000)
+```
+
+> **Your turn:** Rewrite using `when_all()` — see Solution 4.
+
+---
+
+# Part 2: Recoding Values
+
+---
+
+## Exercise 5: Recode island names to locations
+
+This 4-row sample matches the island-recoding animation.
+
+```{r}
+#| label: ex5-data
+penguins_islands <- tibble(
+  species     = c("Adelie", "Adelie", "Adelie", "Gentoo"),
+  island      = c("Biscoe", "Dream", "Torgersen", "Biscoe"),
+  body_mass_g = c(3750, 3800, 4750, 5000)
+)
+
+penguins_islands
+```
+
+**Mapping:**
+
+| island    | location  |
+|-----------|-----------|
+| Biscoe    | Southwest |
+| Dream     | Northwest |
+| Torgersen | Northwest |
+
+**Task:** Add an `island_location` column using this mapping.
+
+```{r}
+#| label: ex5-old
+penguins_islands |>
+  mutate(
+    island_location = case_when(
+      island == "Biscoe"    ~ "Southwest",
+      island == "Dream"     ~ "Northwest",
+      island == "Torgersen" ~ "Northwest",
+      .default = island
+    )
+  )
+```
+
+> **Your turn:** Rewrite using `recode_values()` inside `mutate()` — see Solution 5.
+
+---
+
+## Exercise 6: Recode using a lookup table
+
+Same task as Exercise 5, but this time the mapping lives in a separate lookup table
+instead of being written inline.
+
+```{r}
+#| label: ex6-data
+# Same source data as Exercise 5
+penguins_islands
+
+# Lookup table
+island_lookup <- tibble(
+  from = c("Biscoe", "Dream", "Torgersen"),
+  to   = c("Southwest", "Northwest", "Northwest")
+)
+
+island_lookup
+```
+
+**Task:** Add `island_location` using `island_lookup` as the mapping source.
+
+```{r}
+#| label: ex6-old
+# Manual: pull each pair out of the lookup table one-by-one
+penguins_islands |>
+  mutate(
+    island_location = case_when(
+      island == island_lookup$from[island_lookup$from == "Biscoe"]    ~
+        island_lookup$to[island_lookup$from == "Biscoe"],
+      island == island_lookup$from[island_lookup$from == "Dream"]     ~
+        island_lookup$to[island_lookup$from == "Dream"],
+      island == island_lookup$from[island_lookup$from == "Torgersen"] ~
+        island_lookup$to[island_lookup$from == "Torgersen"],
+      .default = island
+    )
+  )
+```
+
+> **Your turn:** Rewrite using `recode_values()` with `from =` and `to =` — see Solution 6.
+
+---
+
+## Exercise 7: Replace specific values in an existing column
+
+Starting from a dataset that already has an `island_location` column, replace one of
+the location values with a longer name. This sample mirrors the `replace_values()`
+animation.
+
+```{r}
+#| label: ex7-data
+penguins_locations <- tibble(
+  species        = c("Adelie", "Adelie", "Adelie", "Gentoo"),
+  island         = c("Biscoe", "Dream", "Torgersen", "Biscoe"),
+  body_mass_g    = c(3750, 3800, 4750, 5000),
+  island_location = c("Southwest", "Northwest", "Northwest", "Southwest")
+)
+
+penguins_locations
+```
+
+**Task:** In `island_location`, replace `"Northwest"` with
+`"Northern Palmer Archipelago"`. Leave `"Southwest"` unchanged.
+
+Expected result:
+
+| island_location             |
+|-----------------------------|
+| Southwest                   |
+| Northern Palmer Archipelago |
+| Northern Palmer Archipelago |
+| Southwest                   |
+
+```{r}
+#| label: ex7-old
+penguins_locations |>
+  mutate(
+    island_location = case_when(
+      island_location == "Northwest" ~ "Northern Palmer Archipelago",
+      .default = island_location   # boilerplate — must name the same column
+    )
+  )
+```
+
+> **Your turn:** Rewrite using `replace_values()` — see Solution 7.
+
+---
+
+## Exercise 8: Cap a numeric column at a threshold
+
+This sample mirrors the `replace_when()` animation.
+
+```{r}
+#| label: ex8-data
+penguins_large <- tibble(
+  species     = c("Adelie", "Adelie", "Gentoo", "Gentoo"),
+  island      = c("Biscoe", "Dream", "Biscoe", "Biscoe"),
+  body_mass_g = c(3750, 3800, 5200, 5400)
+)
+
+penguins_large
+```
+
+**Task:** Cap `body_mass_g` at 5000 g — any value over 5000 should become 5000.
+Values at or below 5000 stay unchanged.
+
+```{r}
+#| label: ex8-old
+penguins_large |>
+  mutate(
+    body_mass_g = case_when(
+      body_mass_g > 5000 ~ 5000,
+      .default = body_mass_g   # boilerplate — must name the same column
+    )
+  )
+```
+
+> **Your turn:** Rewrite using `replace_when()` — see Solution 8.

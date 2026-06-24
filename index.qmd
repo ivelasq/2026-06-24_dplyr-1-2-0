@@ -67,6 +67,8 @@ penguins_data <- penguins
 
 ⬢ Slides available at: [ivelasq.github.io/2026-06-24_dplyr-1-2-0](ivelasq.github.io/2026-06-24_dplyr-1-2-0)
 
+⬢ Exercises available at: [github.com/ivelasq/2026-06-24_dplyr-1-2-0](https://github.com/ivelasq/2026-06-24_dplyr-1-2-0)
+
 ⬢ Links available at the end of the slide deck
 
 # dplyr {background-color='{{< brand color light-orange >}}'}
@@ -648,3 +650,4 @@ pak::pak("dplyr")
 * [Data Science Lab YouTube playlist](https://www.youtube.com/watch?v=zYCAz88WjHc&list=PL9HYL-VRX0oSeWeMEGQt0id7adYQXebhT)
 * [quarto-revealjs-editable extension by Emil Hvitfeldt](https://github.com/EmilHvitfeldt/quarto-revealjs-editable)
 * [tidy-animations by Emil Hvitfeldt](https://emilhvitfeldt.github.io/tidy-animations/)
+* [Today's exercises](https://github.com/ivelasq/2026-06-24_dplyr-1-2-0)
