@@ -1,0 +1,31 @@
+```{=html}
+<!-- case_when() - with unmatched row -->
+<script>
+window.CWU_DATA = [
+  ['Adelie',    'Torgersen', '3750'],
+  ['Adelie',    'Biscoe',    '3800'],
+  ['Adelie',    'Dream',     '4500'],
+  ['Gentoo',    'Biscoe',    '5000']
+];
+window.CWU_COLS = ['species', 'island', 'body_mass_g'];
+// Which rows match which condition: [cond1, cond2]
+// Condition 1: body_mass_g > 4500 (row 3 only)
+// Condition 2: body_mass_g < 3800 (row 0 only)
+// Row 1 and 2 are unmatched (3800 and 4500 don't match either condition)
+window.CWU_MATCHES = [
+  [false, false, false, true],   // > 4500
+  [true, false, false, false]    // < 3800
+];
+window.CWU_LABELS = ['Large', 'Small'];
+window.CWU_COND_COLORS = ['#e8853a', '#4a86c5'];
+</script>
+```
+
+::: {.cwu-stage-wrap}
+<div id="cwu-stage"></div>
+:::
+
+[]{.fragment .cwu-frag id="cwu-cond-1"}
+[]{.fragment .cwu-frag id="cwu-cond-2"}
+[]{.fragment .cwu-frag id="cwu-result"}
+[]{.fragment .cwu-frag id="cwu-highlight-na"}

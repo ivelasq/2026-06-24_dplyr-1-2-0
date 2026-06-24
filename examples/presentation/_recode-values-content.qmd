@@ -1,0 +1,34 @@
+```{=html}
+<!-- recode_values() - island recoding with values -->
+<script>
+window.RV_DATA = [
+  ['Adelie',    'Biscoe',    '3750'],
+  ['Adelie',    'Dream',     '3800'],
+  ['Adelie',    'Torgersen', '4750'],
+  ['Gentoo',    'Biscoe',    '5000']
+];
+window.RV_COLS = ['species', 'island', 'body_mass_g'];
+// Which rows match which value
+// Value 1: "Biscoe" (row 0, 3)
+// Value 2: "Dream" (row 1)
+// Value 3: "Torgersen" (row 2)
+window.RV_MATCHES = [
+  [true, false, false, true],    // Biscoe
+  [false, true, false, false],   // Dream
+  [false, false, true, false]    // Torgersen
+];
+window.RV_LABELS = ['Southwest', 'Northwest', 'Northwest'];
+window.RV_VALUE_COLORS = ['#e8853a', '#4a86c5', '#9b59b6'];
+</script>
+```
+
+::: {.rv-stage-wrap}
+<div id="rv-stage"></div>
+:::
+
+[]{.fragment .rv-frag id="rv-tildes"}
+[]{.fragment .rv-frag id="rv-val-1"}
+[]{.fragment .rv-frag id="rv-val-2"}
+[]{.fragment .rv-frag id="rv-val-3"}
+[]{.fragment .rv-frag id="rv-result"}
+[]{.fragment .rv-frag id="rv-highlight-new"}

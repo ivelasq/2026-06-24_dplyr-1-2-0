@@ -1,0 +1,30 @@
+```{=html}
+<!-- case_when() - creating new column based on conditions -->
+<script>
+window.CW_DATA = [
+  ['Adelie',    'Torgersen', '3750'],
+  ['Adelie',    'Biscoe',    '3800'],
+  ['Adelie',    'Dream',     '4750'],
+  ['Gentoo',    'Biscoe',    '5000']
+];
+window.CW_COLS = ['species', 'island', 'body_mass_g'];
+// Which rows match which condition: [cond1, cond2]
+// Condition 1: body_mass_g > 4500 (rows 2, 3)
+// Condition 2: body_mass_g < 4500 (rows 0, 1)
+window.CW_MATCHES = [
+  [false, false, true, true],   // > 4500
+  [true, true, false, false]    // < 4500
+];
+window.CW_LABELS = ['Large', 'Small'];
+window.CW_COND_COLORS = ['#e8853a', '#4a86c5'];
+</script>
+```
+
+::: {.cw-stage-wrap}
+<div id="cw-stage"></div>
+:::
+
+[]{.fragment .cw-frag id="cw-cond-1"}
+[]{.fragment .cw-frag id="cw-cond-2"}
+[]{.fragment .cw-frag id="cw-result"}
+[]{.fragment .cw-frag id="cw-highlight-new"}

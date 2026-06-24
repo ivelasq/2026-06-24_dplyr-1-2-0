@@ -1,0 +1,34 @@
+```{=html}
+<!-- Filter_out example showing drop rows where island is Torgersen AND body_mass_g > 4000 -->
+<script>
+window.FO_TITLE_PRE = 'filter_out(';
+window.FO_CONDS_TEXT = ['island == "Torgersen"', 'body_mass_g > 4000'];
+window.FO_TITLE_POST = ')';
+window.FO_DATA = [
+  ['Adelie',    'Torgersen', '3750'],
+  ['Adelie',    'Biscoe',    '3800'],
+  ['Adelie',    'Dream',     '3300'],
+  ['Adelie',    'Torgersen', '4500'],
+  ['Adelie',    'Torgersen', 'NA'],
+];
+window.FO_COLS = ['species', 'island', 'body_mass_g'];
+// one base colour per condition (highlight fill + matching code/text shade)
+window.FO_COLORS = ['#e8853a', '#c54a4a'];
+// one boolean array per column: does that cell satisfy the column's condition?
+window.FO_HITS = [
+  // island == "Torgersen"
+  [true,  false, false, true,  true ],
+  // body_mass_g > 4000
+  [false, false, false, true,  false],
+];
+</script>
+```
+
+::: {.fo-stage-wrap}
+<div id="fo-stage"></div>
+:::
+
+[]{.fragment .fo-frag id="fo-cond-1"}
+[]{.fragment .fo-frag id="fo-cond-2"}
+[]{.fragment .fo-frag id="fo-both"}
+[]{.fragment .fo-frag id="fo-arrows"}

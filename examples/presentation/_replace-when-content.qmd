@@ -1,0 +1,23 @@
+```{=html}
+<!-- replace_when() - cap body_mass_g at 5000 -->
+<script>
+window.RW_DATA = [
+  ['Adelie',    'Biscoe',    '3750'],
+  ['Adelie',    'Dream',     '3800'],
+  ['Gentoo',    'Biscoe',    '5200'],
+  ['Gentoo',    'Biscoe',    '5400']
+];
+window.RW_COLS = ['species', 'island', 'body_mass_g'];
+// Which rows have body_mass_g > 5000 (rows 2 and 3)
+window.RW_MATCHES = [false, false, true, true];
+window.RW_HIGHLIGHT_COLOR = '#e8853a';
+</script>
+```
+
+::: {.rw-stage-wrap}
+<div id="rw-stage"></div>
+:::
+
+[]{.fragment .rw-frag id="rw-highlight-cond"}
+[]{.fragment .rw-frag id="rw-result"}
+[]{.fragment .rw-frag id="rw-highlight-changed"}

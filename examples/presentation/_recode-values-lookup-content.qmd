@@ -1,0 +1,35 @@
+```{=html}
+<!-- recode_values() - with lookup table -->
+<script>
+window.RVL_DATA = [
+  ['Adelie',    'Biscoe',    '3750'],
+  ['Adelie',    'Dream',     '3800'],
+  ['Adelie',    'Torgersen', '4750'],
+  ['Gentoo',    'Biscoe',    '5000']
+];
+window.RVL_COLS = ['species', 'island', 'body_mass_g'];
+// Lookup table
+window.RVL_LOOKUP = [
+  ['Biscoe', 'Southwest'],
+  ['Dream', 'Northwest'],
+  ['Torgersen', 'Northwest']
+];
+// Which rows match which lookup entry
+window.RVL_MATCHES = [
+  [true, false, false, true],    // Biscoe
+  [false, true, false, false],   // Dream
+  [false, false, true, false]    // Torgersen
+];
+window.RVL_LOOKUP_COLORS = ['#e8853a', '#4a86c5', '#9b59b6'];
+</script>
+```
+
+::: {.rvl-stage-wrap}
+<div id="rvl-stage"></div>
+:::
+
+[]{.fragment .rvl-frag id="rvl-lookup-1"}
+[]{.fragment .rvl-frag id="rvl-lookup-2"}
+[]{.fragment .rvl-frag id="rvl-lookup-3"}
+[]{.fragment .rvl-frag id="rvl-result"}
+[]{.fragment .rvl-frag id="rvl-highlight-new"}

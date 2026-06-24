@@ -1,0 +1,19 @@
+```{=html}
+<!-- mutate() - simple example -->
+<script>
+window.MS_DATA = [
+  ['Adelie',    'Torgersen', '3750'],
+  ['Adelie',    'Biscoe',    '3800'],
+  ['Adelie',    'Dream',     '4750'],
+  ['Gentoo',    'Biscoe',    '5000']
+];
+window.MS_COLS = ['species', 'island', 'body_mass_g'];
+</script>
+```
+
+::: {.ms-stage-wrap}
+<div id="ms-stage"></div>
+:::
+
+[]{.fragment .ms-frag id="ms-result"}
+[]{.fragment .ms-frag id="ms-highlight-new"}

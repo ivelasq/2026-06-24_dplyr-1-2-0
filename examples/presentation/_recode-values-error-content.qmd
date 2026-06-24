@@ -1,0 +1,34 @@
+```{=html}
+<!-- recode_values() - with unmatched error -->
+<script>
+window.RVE_DATA = [
+  ['Adelie',    'Biscoe',    '3750'],
+  ['Adelie',    'Dream',     '3800'],
+  ['Adelie',    'Torgersen', '4750'],
+  ['Gentoo',    'Unknown',   '5000']  // Unknown island will be unmatched
+];
+window.RVE_COLS = ['species', 'island', 'body_mass_g'];
+// Which rows match which value
+// Value 1: "Biscoe" (row 0)
+// Value 2: "Dream" (row 1)
+// Value 3: "Torgersen" (row 2)
+// Row 3 has "Unknown" which doesn't match any value
+window.RVE_MATCHES = [
+  [true, false, false, false],   // Biscoe
+  [false, true, false, false],   // Dream
+  [false, false, true, false]    // Torgersen
+];
+window.RVE_LABELS = ['Southwest', 'Northwest', 'Northwest'];
+window.RVE_VALUE_COLORS = ['#e8853a', '#4a86c5', '#9b59b6'];
+</script>
+```
+
+::: {.rve-stage-wrap}
+<div id="rve-stage"></div>
+:::
+
+[]{.fragment .rve-frag id="rve-val-1"}
+[]{.fragment .rve-frag id="rve-val-2"}
+[]{.fragment .rve-frag id="rve-val-3"}
+[]{.fragment .rve-frag id="rve-attempt"}
+[]{.fragment .rve-frag id="rve-error"}

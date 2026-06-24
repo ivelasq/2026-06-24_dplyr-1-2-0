@@ -1,0 +1,23 @@
+color:
+  palette:
+    light-orange: "#FCD299"
+    light-blue: "#99ccff"
+    light-green: "#e4fee4"
+    dark-blue: "#4758AB"
+    
+typography:
+  fonts:
+    - family: League Spartan
+      source: bunny
+
+  base:
+    family: League Spartan
+    weight: 400
+
+  headings:
+    color: black
+    family: League Spartan
+    weight: 700
+    
+  link:
+    color: dark-blue

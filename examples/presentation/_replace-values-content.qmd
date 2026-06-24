@@ -1,0 +1,23 @@
+```{=html}
+<!-- replace_values() - replacing Northwest with Northern Palmer Archipelago -->
+<script>
+window.REPVAL_DATA = [
+  ['Adelie',    'Biscoe',    '3750', 'Southwest'],
+  ['Adelie',    'Dream',     '3800', 'Northwest'],
+  ['Adelie',    'Torgersen', '4750', 'Northwest'],
+  ['Gentoo',    'Biscoe',    '5000', 'Southwest']
+];
+window.REPVAL_COLS = ['species', 'island', 'body_mass_g', 'island_location'];
+// Which rows have "Northwest" to replace
+window.REPVAL_MATCHES = [false, true, true, false];
+window.REPVAL_HIGHLIGHT_COLOR = '#4a86c5';
+</script>
+```
+
+::: {.repval-stage-wrap}
+<div id="repval-stage"></div>
+:::
+
+[]{.fragment .repval-frag id="repval-highlight"}
+[]{.fragment .repval-frag id="repval-result"}
+[]{.fragment .repval-frag id="repval-highlight-new"}

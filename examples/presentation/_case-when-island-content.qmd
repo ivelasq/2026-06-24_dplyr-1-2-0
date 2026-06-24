@@ -1,0 +1,34 @@
+```{=html}
+<!-- case_when() - island recoding -->
+<script>
+window.CWI_DATA = [
+  ['Adelie',    'Biscoe',    '3750'],
+  ['Adelie',    'Dream',     '3800'],
+  ['Adelie',    'Torgersen', '4750'],
+  ['Gentoo',    'Biscoe',    '5000']
+];
+window.CWI_COLS = ['species', 'island', 'body_mass_g'];
+// Which rows match which condition
+// Condition 1: island == "Biscoe" (row 0, 3)
+// Condition 2: island == "Dream" (row 1)
+// Condition 3: island == "Torgersen" (row 2)
+window.CWI_MATCHES = [
+  [true, false, false, true],    // Biscoe
+  [false, true, false, false],   // Dream
+  [false, false, true, false]    // Torgersen
+];
+window.CWI_LABELS = ['Southwest', 'Northwest', 'Northwest'];
+window.CWI_COND_COLORS = ['#e8853a', '#4a86c5', '#9b59b6'];
+</script>
+```
+
+::: {.cwi-stage-wrap}
+<div id="cwi-stage"></div>
+:::
+
+[]{.fragment .cwi-frag id="cwi-equals"}
+[]{.fragment .cwi-frag id="cwi-cond-1"}
+[]{.fragment .cwi-frag id="cwi-cond-2"}
+[]{.fragment .cwi-frag id="cwi-cond-3"}
+[]{.fragment .cwi-frag id="cwi-result"}
+[]{.fragment .cwi-frag id="cwi-highlight-new"}

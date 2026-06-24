@@ -1,0 +1,47 @@
+```{=html}
+<!-- Complex filter with OR - shows messy logic before when_any() -->
+<script>
+window.FOR_TITLE_PRE = 'filter(';
+// Two groups of conditions joined by OR
+window.FOR_COND_GROUPS = [
+  {
+    label: 'Group 1',
+    text: '(species == "Adelie" & island == "Torgersen" & body_mass_g > 3700)',
+    color: '#4a86c5'
+  },
+  {
+    label: 'Group 2',
+    text: '(species == "Gentoo" & body_mass_g > 5000)',
+    color: '#e8853a'
+  }
+];
+window.FOR_TITLE_POST = ')';
+window.FOR_DATA = [
+  ['Adelie',    'Torgersen', '3750'],
+  ['Adelie',    'Torgersen', '3800'],
+  ['Adelie',    'Torgersen', '3250'],
+  ['Adelie',    'Torgersen', 'NA'],
+  ['Gentoo',    'Biscoe',    '4500'],
+  ['Gentoo',    'Biscoe',    '5700'],
+  ['Gentoo',    'Biscoe',    '4450'],
+  ['Gentoo',    'Biscoe',    '5700'],
+];
+window.FOR_COLS = ['species', 'island', 'body_mass_g'];
+// Which rows match which group (can match both, one, or neither)
+window.FOR_MATCHES = [
+  // Group 1: Adelie from Torgersen with body_mass_g > 3700
+  [true, true, false, false, false, false, false, false],
+  // Group 2: Gentoo with body_mass_g > 5000
+  [false, false, false, false, false, true, false, true]
+];
+</script>
+```
+
+::: {.for-stage-wrap}
+<div id="for-stage"></div>
+:::
+
+[]{.fragment .for-frag id="for-group-1"}
+[]{.fragment .for-frag id="for-group-2"}
+[]{.fragment .for-frag id="for-or"}
+[]{.fragment .for-frag id="for-arrows"}

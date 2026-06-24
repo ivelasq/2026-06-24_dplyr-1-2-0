@@ -1,0 +1,46 @@
+```{=html}
+<!-- when_any() + when_all() nested - shows the real power -->
+<script>
+window.WN_TITLE_PRE = 'filter(when_any(';
+// Two when_all groups nested inside when_any
+window.WN_GROUPS = [
+  {
+    label: 'when_all() Group 1',
+    text: 'when_all(species == "Adelie", island == "Torgersen", body_mass_g > 3700)',
+    color: '#4a86c5'
+  },
+  {
+    label: 'when_all() Group 2',
+    text: 'when_all(species == "Gentoo", body_mass_g > 5000)',
+    color: '#e8853a'
+  }
+];
+window.WN_TITLE_POST = '))';
+window.WN_DATA = [
+  ['Adelie',    'Torgersen', '3750'],
+  ['Adelie',    'Torgersen', '3800'],
+  ['Adelie',    'Dream',     '3250'],
+  ['Adelie',    'Biscoe',    'NA'],
+  ['Gentoo',    'Biscoe',    '4500'],
+  ['Gentoo',    'Dream',     '5700'],
+  ['Gentoo',    'Biscoe',    '4450'],
+  ['Gentoo',    'Dream',     '5700'],
+];
+window.WN_COLS = ['species', 'island', 'body_mass_g'];
+// Which rows match which when_all group (all conditions must match within group)
+window.WN_MATCHES = [
+  // Group 1: Adelie AND Torgersen AND body_mass_g > 3700
+  [true, true, false, false, false, false, false, false],
+  // Group 2: Gentoo AND body_mass_g > 5000
+  [false, false, false, false, false, true, false, true]
+];
+</script>
+```
+
+::: {.wn-stage-wrap}
+<div id="wn-stage"></div>
+:::
+
+[]{.fragment .wn-frag id="wn-group-1"}
+[]{.fragment .wn-frag id="wn-group-2"}
+[]{.fragment .wn-frag id="wn-result"}

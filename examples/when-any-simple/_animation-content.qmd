@@ -1,0 +1,28 @@
+```{=html}
+<script>
+window.WAS_TITLE_PRE = 'filter(when_any(';
+window.WAS_CONDS = [
+  { text: 'species == "Adelie"', color: '#4a86c5' },
+  { text: 'body_mass_g > 5000', color: '#e8853a' }
+];
+window.WAS_TITLE_POST = '))';
+window.WAS_DATA = [
+  ['Adelie', 'Torgersen', '3750'],
+  ['Adelie', 'Dream', '3800'],
+  ['Gentoo', 'Biscoe', '4750'],
+  ['Gentoo', 'Dream', '5200'],
+  ['Chinstrap', 'Dream', '3733']
+];
+window.WAS_COLS = ['species', 'island', 'body_mass_g'];
+window.WAS_MATCHES = [
+  [true, true, false, false, false],   // species == "Adelie"
+  [false, false, false, true, false]   // body_mass_g > 5000
+];
+</script>
+```
+
+<div id="was-stage"></div>
+
+[]{.fragment .was-frag id="was-cond-1"}
+[]{.fragment .was-frag id="was-cond-2"}
+[]{.fragment .was-frag id="was-result"}

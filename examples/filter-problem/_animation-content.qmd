@@ -1,0 +1,35 @@
+```{=html}
+<!-- Filter problem: filter(!(cond1 & cond2)) drops NAs too -->
+<script>
+window.FP_TITLE_PRE = 'filter(!(';
+window.FP_CONDS_TEXT = ['island == "Torgersen"', 'body_mass_g > 4000'];
+window.FP_TITLE_POST = '))';
+window.FP_DATA = [
+  ['Adelie',    'Torgersen', '3750'],
+  ['Adelie',    'Biscoe',    '3800'],
+  ['Adelie',    'Dream',     '3300'],
+  ['Adelie',    'Torgersen', '4500'],
+  ['Adelie',    'Torgersen', 'NA'],
+];
+window.FP_COLS = ['species', 'island', 'body_mass_g'];
+// one base colour per condition
+window.FP_COLORS = ['#e8853a', '#c54a4a'];
+// one boolean array per column: does that cell satisfy the column's condition?
+window.FP_HITS = [
+  // island == "Torgersen"
+  [true,  false, false, true,  true ],
+  // body_mass_g > 4000
+  [false, false, false, true,  false],
+];
+</script>
+```
+
+::: {.fp-stage-wrap}
+<div id="fp-stage"></div>
+:::
+
+[]{.fragment .fp-frag id="fp-negation"}
+[]{.fragment .fp-frag id="fp-cond-1"}
+[]{.fragment .fp-frag id="fp-cond-2"}
+[]{.fragment .fp-frag id="fp-both"}
+[]{.fragment .fp-frag id="fp-problem"}
